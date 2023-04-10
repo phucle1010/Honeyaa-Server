@@ -19,6 +19,8 @@
   "homepage": "https://github.com/Annoy1010/Honeyaa-Server#readme",
   "dependencies": {
     "express": "^4.18.2",
+    "express-mysql-session": "^3.0.0",
+    "express-session": "^1.17.3",
     "mysql": "^2.18.1",
     "socket.io": "^4.6.1"
   },
