@@ -1,12 +1,12 @@
 const express = require('express');
 const mysql = require('mysql');
-//npm i jsonwebtoken body-parser nodemailer bcrypt 
 const bodyParser = require('body-parser');
 const jwt = require('jsonwebtoken');
 const nodemailer = require('nodemailer');
 const bcrypt = require('bcrypt')
+require('dotenv').config();
+var client = require('twilio')(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_TOKEN);
 const app = express();
-
 const PORT = 8080;
 app.use(bodyParser.json());
 
@@ -17,6 +17,7 @@ const db = mysql.createConnection({
   database: 'Honeyaa'
 });
 
+
 // Kết nối cơ sở dữ liệu
 db.connect((err) => {
   if (err) {
@@ -25,6 +26,79 @@ db.connect((err) => {
   console.log('MySQL connected');
 });
 
+// verifyPhone Endpoint
+app.get('/verifyPhone', (req, res) => {
+  if (req.query.phonenumber) {
+    db.query('SELECT * FROM user WHERE phone = ?', [req.query.phonenumber], (error, results) => {
+      if (error) {
+        res.status(500).json({ error });
+      } else if (results.length === 0) {
+        res.status(404).json({ error: 'User not found' });
+      } else {
+        client
+          .verify.v2
+          .services(process.env.TWILIO_SERVICE_SID)
+          .verifications
+          .create({
+            to: `+84${req.query.phonenumber}`, channel: "sms"
+          })
+          .then(data => {
+            res.status(200).send({
+              message: "Verification is sent!!",
+              phonenumber: req.query.phonenumber,
+              data
+            })
+          })
+      }
+    }
+)
+  }
+  else {
+    res.status(400).send({
+      message: "Wrong phone number :(",
+      phonenumber: req.query.phonenumber,
+      data
+    })
+  }
+})
+
+// Verify Endpoint
+app.get('/verifyOTP', (req, res) => {
+  if (req.query.phonenumber && (req.query.code).length === 4) {
+    client
+      .verify.v2
+      .services(process.env.TWILIO_SERVICE_SID)
+      .verificationChecks
+      .create({
+        to: `+84${req.query.phonenumber}`, code: req.query.code
+      })
+      .then(data => {
+        if (data.status === "approved") {
+          res.status(200).send({
+            message: "User is Verified!!",
+            data
+          })
+        }
+      })
+  } else {
+    res.status(400).send({
+      message: "Wrong phone number or code :(",
+      phonenumber: req.query.phonenumber,
+      data
+    })
+  }
+})
+
+
+
+app.get('/user', (req, res) => {
+  console.log('param: ', req.query)
+  const sql = `SELECT * FROM honeyaa.user`;
+  db.query(sql, (err, result) => {
+    if (err) throw err;
+    res.send(result);
+  });
+});
 
 // API endpoint để đăng ký người dùng và gửi email xác thực
 app.post('/register', (req, res) => {
@@ -105,61 +179,21 @@ app.post('/login', (req, res) => {
 
 
 // API endpoint để cập nhật lại mật khẩu
-app.put('/update-password', authenticateToken, (req, res) => {
-  const { currentPassword, newPassword } = req.body;
+app.put('/user/:phone/pass', (req, res) => {
+  const { phone } = req.params;
+  const { pass } = req.body;
 
-  // Lấy thông tin người dùng từ token
-  const { email, username } = req.user;
-
-  // Kiểm tra mật khẩu hiện tại có đúng không
-  db.query('SELECT password FROM users WHERE email = ?', [email], (error, results) => {
-    if (error) {
-      res.status(500).json({ error });
-    } else if (results.length === 0) {
-      res.status(404).json({ error: 'User not found' });
+  const query = 'UPDATE user SET pass = ? WHERE phone = ?';
+  db.query(query, [pass, phone], (err, result) => {
+    if (err) {
+      console.log(err);
+      res.status(500).send('Internal server error');
     } else {
-      const passwordHash = results[0].password;
-      bcrypt.compare(currentPassword, passwordHash, (err, result) => {
-        if (err) {
-          res.status(500).json({ error: 'Server error' });
-        } else if (!result) {
-          res.status(401).json({ error: 'Incorrect current password' });
-        } else {
-          // Nếu mật khẩu hiện tại đúng thì hash mật khẩu mới và lưu vào cơ sở dữ liệu
-          bcrypt.hash(newPassword, 10, (err, hash) => {
-            if (err) {
-              res.status(500).json({ error: 'Server error' });
-            } else {
-              db.query('UPDATE users SET password = ? WHERE email = ?', [hash, email], (error, results) => {
-                if (error) {
-                  res.status(500).json({ error });
-                } else {
-                  res.json({ message: 'Password updated successfully' });
-                }
-              });
-            }
-          });
-        }
-      });
+      console.log(result);
+      res.status(200).send('Password updated successfully');
     }
   });
 });
-
-// Middleware để xác thực token
-function authenticateToken(req, res, next) {
-  const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.split(' ')[1];
-  if (token == null) {
-    return res.status(401).json({ error: 'Unauthorized' });
-  }
-  jwt.verify(token, 'secret_key', (err, user) => {
-    if (err) {
-      return res.status(403).json({ error: 'Invalid token' });
-    }
-    req.user = user;
-    next();
-  });
-}
 
 // API lấy thông tin cá nhân
 app.get('/person', (req, res) => {
