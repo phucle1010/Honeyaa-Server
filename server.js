@@ -7,8 +7,10 @@ const bcrypt = require('bcrypt')
 require('dotenv').config();
 var client = require('twilio')(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_TOKEN);
 const app = express();
+const crypto = require('crypto');
+
 const PORT = 8080;
-app.use(bodyParser.json());
+app.use(bodyParser.json()); 
 
 const db = mysql.createConnection({
   host: 'localhost',
@@ -26,9 +28,52 @@ db.connect((err) => {
   console.log('MySQL connected');
 });
 
+function hashPass(pass) {
+  var hash = crypto.createHash('sha256');
+  return hash.update(pass).digest('hex');
+}
+
+//đăng ký tài khoản bằng số điện thoại
+app.get('/signup/phone', (req, res) => {
+  if (req.query.phonenumber) {
+    console.log(req.query.phonenumber);
+    db.query('SELECT * FROM user WHERE phone = ?', [req.query.phonenumber], (error, results) => {
+      if (error) {
+        res.status(500).json({ error });
+      } else if (results.length !== 0) {
+        res.status(404).json({ error: 'Phone number has sign up' });
+      } else {
+        client
+          .verify.v2
+          .services(process.env.TWILIO_SERVICE_SID)
+          .verifications
+          .create({
+            to: `+84${req.query.phonenumber}`, channel: "sms"
+          })
+          .then(data => {
+            res.status(200).send({
+              message: "Verification is sent!!",
+              phonenumber: req.query.phonenumber,
+              data
+            })
+          })
+      }
+    }
+)
+  }
+  else {
+    res.status(400).send({
+      message: "Wrong phone number :(",
+      phonenumber: req.query.phonenumber,
+      data
+    })
+  }
+})
+
 // verifyPhone Endpoint
 app.get('/verifyPhone', (req, res) => {
   if (req.query.phonenumber) {
+    console.log(req.query.phonenumber);
     db.query('SELECT * FROM user WHERE phone = ?', [req.query.phonenumber], (error, results) => {
       if (error) {
         res.status(500).json({ error });
@@ -65,6 +110,7 @@ app.get('/verifyPhone', (req, res) => {
 // Verify Endpoint
 app.get('/verifyOTP', (req, res) => {
   if (req.query.phonenumber && (req.query.code).length === 4) {
+    console.log(req.query.code);
     client
       .verify.v2
       .services(process.env.TWILIO_SERVICE_SID)
@@ -379,6 +425,53 @@ app.get('/questions/:topic', (req, res) => {
   });
 });
 
+
+//Hoàn thành đăng ký tài khoản bằng số điện thoại
+app.post('/signup', upload.array('photo', 3), async (req, res) => {
+  const {phone, pass, name, birthday, photo, photo1, gender, obgender, interests} = req.body;
+
+  const password = hashPass(pass.toString());
+  db.query(`INSERT INTO user (phone, pass) VALUES ('${phone}', "${password}")`, (err, result) => {
+      if(err){
+        console.log(err);
+      }else{
+        db.query(`INSERT INTO person (full_name, dob, phone, sex, sex_oriented) VALUES ('${name}', '${birthday}', '${phone}', '${gender}', '${obgender}')`, (err, result) => {
+          if(err){
+            console.log(err);
+          }else{
+            const person_id = result.insertId;
+            db.query(`INSERT INTO profile_img (image, person_id) VALUES ('${photo}','${person_id}'), ('${photo1}','${person_id}');`, (err, sesult) => {
+              if(err){
+                console.log(err);
+              }else{
+                db.query(`INSERT INTO interest (person_id) VALUES ('${person_id}')`, (err, result) => {
+                  if(err){
+                    console.log(err);
+                  }else{
+                    const interest_id = result.insertId;
+                    for(let i = 0; i < interests.length; i++){
+                      db.query(`INSERT INTO detail_interest (name, interest_id) VALUES ('${interests[i]}','${interest_id}')`, (err, sesult) => {
+                        if(err){
+                          console.log(err);
+                        }else{
+                          console.log(result);
+                          res.send(result);
+                        }
+                      });
+                    }
+                  }
+                });
+              }
+            });
+          }
+        });
+      }
+  });
+});
+
 app.listen(PORT, () => {
   console.log(`Server is running on ${PORT}`);
 });
+
+
+
