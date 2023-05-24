@@ -299,6 +299,7 @@ const removeImageFromProfile = (photo_id, person_id, res) => {
     });
 };
 
+
 const getProfile = (req, res) => {
     const {personId} = req.params;
     const query = `select p.id as 'person_id',ro.id as 'relationship_oriented_id',mb.id as 'my_basics_id', full_name, dob,phone,address,about,sex,sex_oriented,ro.name as 'relationship_oriented',zodiac,education,social_network,physical,pet,music,language
@@ -408,6 +409,7 @@ const getProfile = (req, res) => {
         });
   };
   
+
 module.exports = {
     getUserList,
     getUser,

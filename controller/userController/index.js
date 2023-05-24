@@ -107,6 +107,8 @@ const handleGetImageOfUser = (req, res) => {
     userModel.getImageOfUser(person_id, res);
 };
 
+
+
 const handlePostImageIntoProfile = (req, res) => {
     const photo = req.body.insertPhoto;
     const person_id = req.body.person_id;
@@ -118,6 +120,7 @@ const handleRemoveImageFromProfile = (req, res) => {
     const person_id = req.query.person_id;
     userModel.removeImageFromProfile(photo_id, person_id, res);
 };
+
 module.exports = {
     handleGetUserData,
     handleGetUserDataList,
