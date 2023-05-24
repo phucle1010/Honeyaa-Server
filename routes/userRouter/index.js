@@ -3,7 +3,7 @@ const router = express.Router();
 
 const userController = require('../../controller/userController');
 
-router.post('/login', userController.handleLoginUser);
+
 router.post('/signup', userController.handlePostUser);
 router.post('/signout', userController.handleSignoutUser);
 router.post('/myinterest/:personid/:data', userController.handlePostMyInterest);
@@ -19,4 +19,9 @@ router.get('/relationship_oriented', userController.handleGetRelationshipOriente
 router.get('/', userController.handleGetUserDataList);
 router.put('/myBasic/:myBasicId', userController.handleUpdateMyBasic);
 router.put('/profile/:personId', userController.handleUpdateMyBasic);
+router.post('/login', userController.handleLoginUser);
+router.get('/profile/img', userController.handleGetImageOfUser);
+router.post('/profile/img/post', userController.handlePostImageIntoProfile);
+router.delete('/profile/img/delete', userController.handleRemoveImageFromProfile);
+
 module.exports = router;
