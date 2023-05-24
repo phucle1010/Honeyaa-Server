@@ -231,6 +231,115 @@ const loginUser = (req, res) => {
     });
 };
 
+const getProfile = (req, res) => {
+    const {personId} = req.params;
+    const query = `select p.id as 'person_id',ro.id as 'relationship_oriented_id',mb.id as 'my_basics_id', full_name, dob,phone,address,about,sex,sex_oriented,ro.name as 'relationship_oriented',zodiac,education,social_network,physical,pet,music,language
+                from person p, relationship_oriented ro, my_basics mb
+                where p.id = mb.person_id and ro.id = p.relationship_oriented_id and p.id = ?`;
+    db.query(query,[personId], (err, result) => {
+      if (err) {
+        console.log(err)
+      }
+      res.send(result);
+    });
+  };
+  const updateMyBasic =(req, res) => {
+    const { myBasicId } = req.params
+    const { zodiac, education, language, socialNetwork, physicalExercise, pet, music } = req.body;
+    const query = `UPDATE my_basics SET zodiac = ?, education = ?, language = ?, social_network = ?, physical = ?, pet = ?, music = ? WHERE id = ?`;
+    db.query(query, [zodiac, education, language, socialNetwork, physicalExercise, pet, music, myBasicId], (err, result) => {
+        if (err) {
+             console.log(err);
+            res.status(500).send('Internal server error');
+        } else {
+            console.log(result);
+            res.status(200).send('my basic updated successfully');
+    }
+  });
+  }
+
+ const getInterestList = (req, res) => {
+    const query = `select * from interest `;
+    db.query(query, (err, result) => {
+      if (err) {
+        console.log(err)
+      }
+      res.send(result);
+    });
+  };
+
+  const getMyInterest = (req, res) => {
+    const {personId} = req.params;
+    const query = `SELECT  mi.interest_id as 'id',name
+    FROM interest i, my_interest mi, person p
+    where i.id=mi.interest_id and p.id = mi.person_id and p.id = ? `;
+    db.query(query,[personId], (err, result) => {
+      if (err) {
+        console.log(err)
+      }
+      res.send(result);
+    });
+  };
+  
+  const postMyInterest = (req, res) => {
+    const { personid } = req.params;
+    const data = req.params.data.split(",");
+  
+    const deleteQuery = `DELETE FROM my_interest WHERE person_id = ?`;
+    db.query(deleteQuery, [personid], (err, deleteResult) => {
+      if (err) {
+        console.log(err);
+        res.sendStatus(500);
+        return;
+      }
+      const insertQuery = `INSERT INTO my_interest (person_id, interest_id) VALUES (?, ?)`;
+      const insertPromises = data.map(item => {
+        return new Promise((resolve, reject) => {
+          db.query(insertQuery, [personid, item], (err, insertResult) => {
+            if (err) {
+              console.log(err);
+              reject(err);
+            } else {
+              resolve(insertResult);
+            }
+          });
+        });
+      });
+      Promise.all(insertPromises)
+        .then(results => {
+          res.send(results); 
+        })
+        .catch(error => {
+          console.log(error);
+          res.sendStatus(500); 
+        });
+    });
+  };
+  const getRelationshipOrientedList = (req, res) => {
+    const query = ` select * from relationship_oriented`;
+    db.query(query, (err, result) => {
+      if (err) {
+        console.log(err)
+      }
+      res.send(result);
+    });
+  };
+
+  const putProfile = (req, res) => {
+    const {personId} = req.params
+    const { about, address, sex, sexOriented, relationshipOrientedId } = req.body;
+        const query = 'UPDATE person SET about=?, address=?, sex=?, sex_oriented=?, relationship_oriented_id=? WHERE id =?';
+        db.query(query, [about, address, sex, sexOriented, relationshipOrientedId, personId], (error, results) => {
+          if (error) {
+            res.status(500).json({ error });
+            console.log(error)
+          } else {
+            res.json({ message: 'profile update successfully' });
+            console.log(results)
+          }
+        });
+  };
+  
 module.exports = {
     getUserList,
     getUser,
@@ -241,4 +350,11 @@ module.exports = {
     verifyPhone,
     verifyOTP,
     loginUser,
+    getProfile,
+    updateMyBasic,
+    getInterestList,
+    getMyInterest,
+    postMyInterest,
+    getRelationshipOrientedList,
+    putProfile
 };

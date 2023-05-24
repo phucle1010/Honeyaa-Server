@@ -81,7 +81,27 @@ const handleLoginUser = (req, res) => {
         userModel.loginUser(req, res);
     }
 };
-
+const handleGetProfileList  = (req,res) =>{
+    userModel.getProfile(req,res);
+}
+const handleUpdateMyBasic  = (req,res) =>{
+    userModel.updateMyBasic(req,res);
+}
+const handleGetInterestList  = (req,res) =>{
+    userModel.getInterestList(req,res);
+}
+const handleGetMyInterest = (req, res) => {
+    userModel.getMyInterest(req,res);
+}
+const handlePostMyInterest = (req, res) => {
+    userModel.postMyInterest(req,res);
+}
+const handleGetRelationshipOrientedList = (req, res) => {
+    userModel.getRelationshipOrientedList(req,res);
+}
+const handlePutProfile = (req, res) => {
+    userModel.putProfile(req,res);
+}
 module.exports = {
     handleGetUserData,
     handleGetUserDataList,
@@ -92,4 +112,11 @@ module.exports = {
     handleVerifyPhone,
     handleVerifyOTP,
     handleLoginUser,
+    handleGetProfileList,
+    handleUpdateMyBasic,
+    handleGetInterestList,
+    handleGetMyInterest,
+    handlePostMyInterest,
+    handleGetRelationshipOrientedList,
+    handlePutProfile,
 };
