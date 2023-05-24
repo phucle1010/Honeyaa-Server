@@ -231,6 +231,74 @@ const loginUser = (req, res) => {
     });
 };
 
+const getImageOfUser = (person_id, res) => {
+    const createFullImageList = (images) => {
+        const emptyImage = {
+            id: null,
+            image: '',
+            person_id: null,
+        };
+
+        if (images.length < 6) {
+            let newImages = [...images];
+            for (let i = images.length; i < 6; i++) {
+                newImages = [...newImages, emptyImage];
+            }
+            return newImages;
+        }
+        return images;
+    };
+
+    db.query(`SELECT * FROM profile_img WHERE person_id=${person_id}`, (err, result) => {
+        if (err) {
+            res.send({
+                statusCode: 400,
+                responseData: err.toString(),
+            });
+        } else {
+            const images = createFullImageList(result);
+            res.send({
+                statusCode: 200,
+                responseData: images,
+            });
+        }
+    });
+};
+
+const postImageIntoProfile = (photo, person_id, res) => {
+    db.query(`INSERT INTO profile_img (image, person_id) VALUE ('${photo.image}', ${person_id})`, (err, result) => {
+        if (err) {
+            res.send({
+                statusCode: 400,
+                responseData: err.toString(),
+            });
+        } else {
+            res.send({
+                statusCode: 200,
+                responseData: 'Success',
+            });
+        }
+    });
+};
+
+const removeImageFromProfile = (photo_id, person_id, res) => {
+    db.query(`DELETE FROM profile_img WHERE id=${photo_id} AND person_id=${person_id}`, (err, result) => {
+        if (err) {
+            res.send({
+                statusCode: 400,
+                responseData: err.toString(),
+            });
+        } else {
+            if (result.affectedRows > 0) {
+                res.send({
+                    statusCode: 200,
+                    responseData: 'Remove photo successfully',
+                });
+            }
+        }
+    });
+};
+
 module.exports = {
     getUserList,
     getUser,
@@ -241,4 +309,7 @@ module.exports = {
     verifyPhone,
     verifyOTP,
     loginUser,
+    getImageOfUser,
+    postImageIntoProfile,
+    removeImageFromProfile,
 };

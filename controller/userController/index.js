@@ -82,6 +82,23 @@ const handleLoginUser = (req, res) => {
     }
 };
 
+const handleGetImageOfUser = (req, res) => {
+    const person_id = req.query.person_id;
+    userModel.getImageOfUser(person_id, res);
+};
+
+const handlePostImageIntoProfile = (req, res) => {
+    const photo = req.body.insertPhoto;
+    const person_id = req.body.person_id;
+    userModel.postImageIntoProfile(photo, person_id, res);
+};
+
+const handleRemoveImageFromProfile = (req, res) => {
+    const photo_id = req.query.id;
+    const person_id = req.query.person_id;
+    userModel.removeImageFromProfile(photo_id, person_id, res);
+};
+
 module.exports = {
     handleGetUserData,
     handleGetUserDataList,
@@ -92,4 +109,7 @@ module.exports = {
     handleVerifyPhone,
     handleVerifyOTP,
     handleLoginUser,
+    handleGetImageOfUser,
+    handlePostImageIntoProfile,
+    handleRemoveImageFromProfile,
 };
