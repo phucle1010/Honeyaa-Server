@@ -1,6 +1,7 @@
 const db = require('../../store');
 const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
+const { send } = require('process');
 var client = require('twilio')(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_TOKEN);
 
 function hashPass(pass) {
@@ -268,6 +269,7 @@ const getImageOfUser = (person_id, res) => {
 const postImageIntoProfile = (photo, person_id, res) => {
     db.query(`INSERT INTO profile_img (image, person_id) VALUE ('${photo.image}', ${person_id})`, (err, result) => {
         if (err) {
+            console.log(err)
             res.send({
                 statusCode: 400,
                 responseData: err.toString(),
@@ -408,7 +410,20 @@ const getProfile = (req, res) => {
           }
         });
   };
-  
+  const getTopLike = (req, res) => {
+    const query = `select target_id,full_name, GROUP_CONCAT(DISTINCT image SEPARATOR ',') as image, count(target_id) as 'numOfLike'
+                    from Honeyaa.like l, person p, profile_img i
+                    where l.target_id = p.id and p.id = i.person_id
+                    group by target_id,full_name
+                    order by numOfLike desc
+                    LIMIT 10`;
+    db.query(query, (err, result) => {
+      if (err) {
+        console.log(err)
+      }
+      res.send(result)
+    });
+  };
 
 module.exports = {
     getUserList,
@@ -429,5 +444,6 @@ module.exports = {
     postMyInterest,
     getRelationshipOrientedList,
     putProfile,
-    updateMyBasic
+    updateMyBasic,
+    getTopLike
 };

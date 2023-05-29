@@ -120,7 +120,10 @@ const handleRemoveImageFromProfile = (req, res) => {
     const person_id = req.query.person_id;
     userModel.removeImageFromProfile(photo_id, person_id, res);
 };
-
+const handleGetTopLike = (req, res) => {
+    const person_id = req.query.person_id;
+    userModel.getTopLike(req,res)
+};
 module.exports = {
     handleGetUserData,
     handleGetUserDataList,
@@ -141,4 +144,5 @@ module.exports = {
     handleGetImageOfUser,
     handlePostImageIntoProfile,
     handleRemoveImageFromProfile,
+    handleGetTopLike
 };

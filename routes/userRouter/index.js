@@ -12,7 +12,7 @@ router.get('/signup/phone', userController.handleCheckPhone);
 router.get('/activate/:token', userController.handleAuthen);
 router.get('/verifyPhone', userController.handleVerifyPhone);
 router.get('/verifyOTP', userController.handleVerifyOTP);
-
+router.get('/toplike', userController.handleGetTopLike);
 router.get('/data', userController.handleGetUserData);
 router.get('/profile/:personId', userController.handleGetProfileList);
 router.get('/interest', userController.handleGetInterestList);
