@@ -10,6 +10,11 @@ const handleGetUserDataList = (req, res) => {
     userModel.getUserList(req, res);
 };
 
+const handleGetRecommendationUserDataList = (req, res) => {
+    const requestedUserId = req.query.user_id;
+    userModel.getRecommendationUserDataList(requestedUserId, res);
+};
+
 const handlePostUser = (req, res) => {
     userModel.postUser(req, res);
 };
@@ -102,6 +107,7 @@ const handleRemoveImageFromProfile = (req, res) => {
 module.exports = {
     handleGetUserData,
     handleGetUserDataList,
+    handleGetRecommendationUserDataList,
     handlePostUser,
     handleSignoutUser,
     handleCheckPhone,

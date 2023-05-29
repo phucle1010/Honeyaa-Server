@@ -25,6 +25,25 @@ const getUserList = (req, res) => {
     });
 };
 
+const getRecommendationUserDataList = (requestedUserId, res) => {
+    db.query(
+        `SELECT p.id, p.full_name, p.dob, p.phone, p.sex, p.sex_oriented, p.relationship_oriented_id FROM person p WHERE p.id != ${requestedUserId}`,
+        (err, result) => {
+            if (err) {
+                res.send({
+                    statusCode: 400,
+                    responseData: err.toString(),
+                });
+            } else {
+                res.send({
+                    statusCode: 200,
+                    responseData: result,
+                });
+            }
+        },
+    );
+};
+
 const getUser = (token, res) => {
     db.query(`SELECT * FROM person p, user u WHERE p.phone = u.phone AND u.token=${token}`, (err, result) => {
         if (err) {
@@ -301,6 +320,7 @@ const removeImageFromProfile = (photo_id, person_id, res) => {
 
 module.exports = {
     getUserList,
+    getRecommendationUserDataList,
     getUser,
     postUser,
     signoutUser,

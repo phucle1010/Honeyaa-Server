@@ -1,5 +1,5 @@
 const userRouter = require('./userRouter');
-const matchRouter = require('./userRouter');
+const matchRouter = require('./matchRouter');
 
 const route = (app) => {
     app.use('/api/user', userRouter);
