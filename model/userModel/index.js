@@ -296,7 +296,7 @@ const getAvatarOfUser = (user_id, res) => {
             } else {
                 res.send({
                     statusCode: 200,
-                    responseData: result[0].image || '',
+                    responseData: result[0]?.image || '',
                 });
             }
         }

@@ -130,7 +130,6 @@ const handleRemoveImageFromProfile = (req, res) => {
 };
 
 const handleGetTopLike = (req, res) => {
-    const person_id = req.query.person_id;
     userModel.getTopLike(req, res);
 };
 
