@@ -10,7 +10,7 @@ function hashPass(pass) {
 }
 
 const getUserList = (req, res) => {
-    const sql = 'SELECT * FROM user';
+    const sql = 'SELECT phone FROM user';
     db.query(sql, (err, result) => {
         if (err) {
             res.send({
@@ -285,10 +285,28 @@ const getImageOfUser = (person_id, res) => {
     });
 };
 
+const getAvatarOfUser = (user_id, res) => {
+    db.query(`SELECT * FROM profile_img WHERE person_id=${user_id}`, (err, result) => {
+        {
+            if (err) {
+                res.send({
+                    statusCode: 400,
+                    responseData: err.toString(),
+                });
+            } else {
+                res.send({
+                    statusCode: 200,
+                    responseData: result[0].image || '',
+                });
+            }
+        }
+    });
+};
+
 const postImageIntoProfile = (photo, person_id, res) => {
     db.query(`INSERT INTO profile_img (image, person_id) VALUE ('${photo.image}', ${person_id})`, (err, result) => {
         if (err) {
-            console.log(err)
+            console.log(err);
             res.send({
                 statusCode: 400,
                 responseData: err.toString(),
@@ -319,117 +337,122 @@ const removeImageFromProfile = (photo_id, person_id, res) => {
         }
     });
 };
-
-
+///// Lỗi db ở đây
 const getProfile = (req, res) => {
-    const {personId} = req.params;
-    const query = `select p.id as 'person_id',ro.id as 'relationship_oriented_id',mb.id as 'my_basics_id', full_name, dob,phone,address,about,sex,sex_oriented,ro.name as 'relationship_oriented',zodiac,education,social_network,physical,pet,music,language
+    const { personId } = req.params;
+    const query = `select p.id as 'person_id', ro.id as 'relationship_oriented_id', mb.id as 'my_basics_id', full_name, dob, phone, address, about_me, sex, sex_oriented, ro.name as 'relationship_oriented', zodiac, education, social_network, physical, pet, music, mb.language
                 from person p, relationship_oriented ro, my_basics mb
                 where p.id = mb.person_id and ro.id = p.relationship_oriented_id and p.id = ?`;
-    db.query(query,[personId], (err, result) => {
-      if (err) {
-        console.log(err)
-      }
-      res.send(result);
+    db.query(query, [personId], (err, result) => {
+        if (err) {
+            console.log(err);
+        }
+        res.send(result);
     });
-  };
-  const updateMyBasic =(req, res) => {
-    const { myBasicId } = req.params
+};
+
+const updateMyBasic = (req, res) => {
+    const { myBasicId } = req.params;
     const { zodiac, education, language, socialNetwork, physicalExercise, pet, music } = req.body;
     const query = `UPDATE my_basics SET zodiac = ?, education = ?, language = ?, social_network = ?, physical = ?, pet = ?, music = ? WHERE id = ?`;
-    db.query(query, [zodiac, education, language, socialNetwork, physicalExercise, pet, music, myBasicId], (err, result) => {
-        if (err) {
-             console.log(err);
-            res.status(500).send('Internal server error');
-        } else {
-            console.log(result);
-            res.status(200).send('my basic updated successfully');
-    }
-  });
-  }
+    db.query(
+        query,
+        [zodiac, education, language, socialNetwork, physicalExercise, pet, music, myBasicId],
+        (err, result) => {
+            if (err) {
+                console.log(err);
+                res.status(500).send('Internal server error');
+            } else {
+                console.log(result);
+                res.status(200).send('My basic was updated successfully');
+            }
+        },
+    );
+};
 
- const getInterestList = (req, res) => {
+const getInterestList = (req, res) => {
     const query = `select * from interest `;
     db.query(query, (err, result) => {
-      if (err) {
-        console.log(err)
-      }
-      res.send(result);
+        if (err) {
+            console.log(err);
+        }
+        res.send(result);
     });
-  };
-
-  const getMyInterest = (req, res) => {
-    const {personId} = req.params;
+};
+///// Lỗi db my interest
+const getMyInterest = (req, res) => {
+    const { personId } = req.params;
     const query = `SELECT  mi.interest_id as 'id',name
     FROM interest i, my_interest mi, person p
     where i.id=mi.interest_id and p.id = mi.person_id and p.id = ? `;
-    db.query(query,[personId], (err, result) => {
-      if (err) {
-        console.log(err)
-      }
-      res.send(result);
+    db.query(query, [personId], (err, result) => {
+        if (err) {
+            console.log(err);
+        }
+        res.send(result);
     });
-  };
-  
-  const postMyInterest = (req, res) => {
+};
+
+const postMyInterest = (req, res) => {
     const { personid } = req.params;
-    const data = req.params.data.split(",");
-  
+    const data = req.params.data.split(',');
+
     const deleteQuery = `DELETE FROM my_interest WHERE person_id = ?`;
     db.query(deleteQuery, [personid], (err, deleteResult) => {
-      if (err) {
-        console.log(err);
-        res.sendStatus(500);
-        return;
-      }
-      const insertQuery = `INSERT INTO my_interest (person_id, interest_id) VALUES (?, ?)`;
-      const insertPromises = data.map(item => {
-        return new Promise((resolve, reject) => {
-          db.query(insertQuery, [personid, item], (err, insertResult) => {
-            if (err) {
-              console.log(err);
-              reject(err);
-            } else {
-              resolve(insertResult);
-            }
-          });
+        if (err) {
+            console.log(err);
+            res.sendStatus(500);
+            return;
+        }
+        const insertQuery = `INSERT INTO my_interest (person_id, interest_id) VALUES (?, ?)`;
+        const insertPromises = data.map((item) => {
+            return new Promise((resolve, reject) => {
+                db.query(insertQuery, [personid, item], (err, insertResult) => {
+                    if (err) {
+                        console.log(err);
+                        reject(err);
+                    } else {
+                        resolve(insertResult);
+                    }
+                });
+            });
         });
-      });
-      Promise.all(insertPromises)
-        .then(results => {
-          res.send(results); 
-        })
-        .catch(error => {
-          console.log(error);
-          res.sendStatus(500); 
-        });
+        Promise.all(insertPromises)
+            .then((results) => {
+                res.send(results);
+            })
+            .catch((error) => {
+                console.log(error);
+                res.sendStatus(500);
+            });
     });
-  };
-  const getRelationshipOrientedList = (req, res) => {
+};
+const getRelationshipOrientedList = (req, res) => {
     const query = ` select * from relationship_oriented`;
     db.query(query, (err, result) => {
-      if (err) {
-        console.log(err)
-      }
-      res.send(result);
+        if (err) {
+            console.log(err);
+        }
+        res.send(result);
     });
-  };
+};
 
-  const putProfile = (req, res) => {
-    const {personId} = req.params
+const putProfile = (req, res) => {
+    const { personId } = req.params;
     const { about, address, sex, sexOriented, relationshipOrientedId } = req.body;
-        const query = 'UPDATE person SET about=?, address=?, sex=?, sex_oriented=?, relationship_oriented_id=? WHERE id =?';
-        db.query(query, [about, address, sex, sexOriented, relationshipOrientedId, personId], (error, results) => {
-          if (error) {
+    const query =
+        'UPDATE person SET about_me=?, address=?, sex=?, sex_oriented=?, relationship_oriented_id=? WHERE id =?';
+    db.query(query, [about, address, sex, sexOriented, relationshipOrientedId, personId], (error, results) => {
+        if (error) {
             res.status(500).json({ error });
-            console.log(error)
-          } else {
+            console.log(error);
+        } else {
             res.json({ message: 'profile update successfully' });
-            console.log(results)
-          }
-        });
-  };
-  const getTopLike = (req, res) => {
+            console.log(results);
+        }
+    });
+};
+const getTopLike = (req, res) => {
     const query = `select target_id,full_name, GROUP_CONCAT(DISTINCT image SEPARATOR ',') as image, count(target_id) as 'numOfLike'
                     from Honeyaa.like l, person p, profile_img i
                     where l.target_id = p.id and p.id = i.person_id
@@ -437,12 +460,12 @@ const getProfile = (req, res) => {
                     order by numOfLike desc
                     LIMIT 10`;
     db.query(query, (err, result) => {
-      if (err) {
-        console.log(err)
-      }
-      res.send(result)
+        if (err) {
+            console.log(err);
+        }
+        res.send(result);
     });
-  };
+};
 
 module.exports = {
     getUserList,
@@ -456,6 +479,7 @@ module.exports = {
     verifyOTP,
     loginUser,
     getImageOfUser,
+    getAvatarOfUser,
     postImageIntoProfile,
     removeImageFromProfile,
     getProfile,
@@ -465,5 +489,5 @@ module.exports = {
     getRelationshipOrientedList,
     putProfile,
     updateMyBasic,
-    getTopLike
+    getTopLike,
 };

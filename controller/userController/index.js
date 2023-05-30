@@ -86,33 +86,36 @@ const handleLoginUser = (req, res) => {
         userModel.loginUser(req, res);
     }
 };
-const handleGetProfileList  = (req,res) =>{
-    userModel.getProfile(req,res);
-}
-const handleUpdateMyBasic  = (req,res) =>{
-    userModel.updateMyBasic(req,res);
-}
-const handleGetInterestList  = (req,res) =>{
-    userModel.getInterestList(req,res);
-}
+const handleGetProfileList = (req, res) => {
+    userModel.getProfile(req, res);
+};
+const handleUpdateMyBasic = (req, res) => {
+    userModel.updateMyBasic(req, res);
+};
+const handleGetInterestList = (req, res) => {
+    userModel.getInterestList(req, res);
+};
 const handleGetMyInterest = (req, res) => {
-    userModel.getMyInterest(req,res);
-}
+    userModel.getMyInterest(req, res);
+};
 const handlePostMyInterest = (req, res) => {
-    userModel.postMyInterest(req,res);
-}
+    userModel.postMyInterest(req, res);
+};
 const handleGetRelationshipOrientedList = (req, res) => {
-    userModel.getRelationshipOrientedList(req,res);
-}
+    userModel.getRelationshipOrientedList(req, res);
+};
 const handlePutProfile = (req, res) => {
-    userModel.putProfile(req,res);
-}
+    userModel.putProfile(req, res);
+};
 const handleGetImageOfUser = (req, res) => {
-    const person_id = req.query.person_id;
-    userModel.getImageOfUser(person_id, res);
+    const user_id = req.query.user_id;
+    userModel.getImageOfUser(user_id, res);
 };
 
-
+const handleGetAvatarOfUser = (req, res) => {
+    const user_id = req.query.user_id;
+    userModel.getAvatarOfUser(user_id, res);
+};
 
 const handlePostImageIntoProfile = (req, res) => {
     const photo = req.body.insertPhoto;
@@ -125,10 +128,12 @@ const handleRemoveImageFromProfile = (req, res) => {
     const person_id = req.query.person_id;
     userModel.removeImageFromProfile(photo_id, person_id, res);
 };
+
 const handleGetTopLike = (req, res) => {
     const person_id = req.query.person_id;
-    userModel.getTopLike(req,res)
+    userModel.getTopLike(req, res);
 };
+
 module.exports = {
     handleGetUserData,
     handleGetUserDataList,
@@ -148,7 +153,8 @@ module.exports = {
     handleGetRelationshipOrientedList,
     handlePutProfile,
     handleGetImageOfUser,
+    handleGetAvatarOfUser,
     handlePostImageIntoProfile,
     handleRemoveImageFromProfile,
-    handleGetTopLike
+    handleGetTopLike,
 };
