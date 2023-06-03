@@ -467,6 +467,125 @@ const getTopLike = (req, res) => {
     });
 };
 
+const getUserInfoByToken = (token) => {
+    try {
+        return new Promise((resolve, reject) => {
+          db.query(`SELECT * FROM person p, user u WHERE p.phone = u.phone AND u.token='${token}'`, (err, result) => {
+            if (err) {
+              console.log(err);
+              reject(err);
+            } else {
+              resolve(result);
+            }
+          });
+        });
+    } catch (error) {
+        console.log(error);
+    }
+  };
+
+const potentialLover = async (user) => {
+    try {
+        return new Promise((resolve, reject) => {
+            db.query(`
+                SELECT p.id, p.full_name, p.dob, p.phone, p.sex, p.sex_oriented, p.relationship_oriented_id, p.about_me 
+                FROM person p
+                WHERE
+                    p.id != ${user.id} and
+                    p.sex = ${user.sex_oriented} and
+                    NOT EXISTS (
+                        SELECT * FROM honeyaa.like l
+                        WHERE l.target_id = p.id and l.person_id = ${user.id}
+                    )`, (err, result) => {
+                    if (err) {
+                        console.log(err);
+                        reject(err);
+                    } else {
+                        resolve(result);
+                    }
+            });
+        });
+    } catch (error) {
+        console.log(error);
+    }
+}
+
+const getImageByUserId = async (person_id) => {
+    const createFullImageList = async (images) => {
+        const emptyImage = {
+            id: null,
+            image: '',
+            person_id: null,
+        };
+
+        if (images.length < 6) {
+            let newImages = [...images];
+            for (let i = images.length; i < 6; i++) {
+                newImages = [...newImages, emptyImage];
+            }
+            return newImages;
+        }
+        return images;
+    };
+    try {
+        const result = await new Promise((resolve, reject) => {
+            db.query(`SELECT * FROM profile_img WHERE person_id=${person_id}`, (err, result) => {
+                if (err) {
+                    console.log(err);
+                    reject(err);
+                } else {
+                    resolve(result);
+                }
+            });
+        });
+        return await createFullImageList(result);
+    } catch (err) {
+        console.log(err);
+        throw err;
+    }
+};
+
+const getMyInterestByUserId = async (userId) => {
+    try {
+        return new Promise((resolve, reject) => {
+            const query = `SELECT  mi.interest_id as 'id',name
+            FROM interest i, my_interest mi, person p
+            where i.id=mi.interest_id and p.id = mi.person_id and p.id = ? `;
+            db.query(query, [userId], (err, result) => {
+                if (err) {
+                    console.log(err);
+                    reject(err);
+                } else {
+                    resolve(result);
+                }
+            });
+        })
+    } catch (error) {
+        console.log(error);
+    }
+};
+
+const getRelationshipOrientedByUserId = async (userId) => {
+    try {
+        return new Promise((resolve, reject) => {
+            db.query(`
+                SELECT ro.name, ro.id
+                FROM relationship_oriented ro, person ps   
+                where ps.relationship_oriented_id = ro.id and ps.id = ${userId}
+            `, (err, result) => {
+                    if (err) {
+                        console.log(err);
+                        reject(err);
+                    } else {
+                        resolve(result);
+                    }
+            });
+        })
+    } catch (error) {
+        console.log(error);
+    }
+}
+
 module.exports = {
     getUserList,
     getRecommendationUserDataList,
@@ -490,4 +609,9 @@ module.exports = {
     putProfile,
     updateMyBasic,
     getTopLike,
+    getUserInfoByToken,
+    potentialLover,
+    getImageByUserId,
+    getMyInterestByUserId,
+    getRelationshipOrientedByUserId,
 };

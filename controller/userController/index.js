@@ -133,6 +133,65 @@ const handleGetTopLike = (req, res) => {
     userModel.getTopLike(req, res);
 };
 
+const getPotentialLover = async (req, res) => {
+    try {
+        const {token} = req.query;
+        const user = await userModel.getUserInfoByToken(token);
+        if (!user.length) {
+            return res.send({
+                statusCode: 403,
+                responseData: `user was not found!1`,
+            });
+        }
+    
+        const userInfo = user[0];
+        console.log(userInfo);
+
+        if (!userInfo) {
+            return res.send({
+                statusCode: 403,
+                responseData: `user was not found!3`,
+            });
+        }
+    
+        const userPotentials = await userModel.potentialLover(userInfo);
+        const userPotential = userPotentials[0];
+        console.log(userPotential);
+        if (!userPotential) {
+            return res.send({
+                statusCode: 403,
+                responseData: `user was not found!4`,
+            });
+        }
+            
+        const images = await userModel.getImageByUserId(userPotential.id);
+    
+        const interests = await userModel.getMyInterestByUserId(userPotential.id);
+        const approachObject = await userModel.getRelationshipOrientedByUserId(userPotential.id);
+    
+        let userPotentialLover = {
+            id: userPotential.id,
+            name: userPotential.full_name,
+            dob: userPotential.dob,
+            status: "Đang hoạt động",
+            distance: 1,
+            gender: userPotential.sex?userPotential.sex: null,
+            img: images,
+            hobbies: interests,
+            introduction: userPotential.about_me,
+            socialContact: null,
+            approachObject: approachObject, 
+        }
+    
+        if (userPotentialLover) {
+            console.log(userPotentialLover);
+            res.status(200).json(userPotentialLover);
+        }
+    } catch (error) {
+        res.status(500).json("!!!");
+    }
+}
+
 module.exports = {
     handleGetUserData,
     handleGetUserDataList,
@@ -156,4 +215,5 @@ module.exports = {
     handlePostImageIntoProfile,
     handleRemoveImageFromProfile,
     handleGetTopLike,
+    getPotentialLover,
 };

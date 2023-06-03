@@ -24,6 +24,7 @@ router.get('/profile/img/all', userController.handleGetImageOfUser);
 router.get('/profile/img/avatar', userController.handleGetAvatarOfUser);
 router.post('/profile/img/post', userController.handlePostImageIntoProfile);
 router.delete('/profile/img/delete', userController.handleRemoveImageFromProfile);
+router.get('/potential_love', userController.getPotentialLover);
 router.get('/', userController.handleGetUserDataList);
 
 module.exports = router;
