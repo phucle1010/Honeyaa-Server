@@ -26,25 +26,6 @@ const getUserList = (req, res) => {
     });
 };
 
-const getRecommendationUserDataList = (requestedUserId, res) => {
-    db.query(
-        `SELECT p.id, p.full_name, p.dob, p.phone, p.sex, p.sex_oriented, p.relationship_oriented_id FROM person p WHERE p.id != ${requestedUserId}`,
-        (err, result) => {
-            if (err) {
-                res.send({
-                    statusCode: 400,
-                    responseData: err.toString(),
-                });
-            } else {
-                res.send({
-                    statusCode: 200,
-                    responseData: result,
-                });
-            }
-        },
-    );
-};
-
 const getUser = (token, res) => {
     db.query(`SELECT * FROM person p, user u WHERE p.phone = u.phone AND u.token=${token}`, (err, result) => {
         if (err) {
@@ -470,24 +451,25 @@ const getTopLike = (req, res) => {
 const getUserInfoByToken = (token) => {
     try {
         return new Promise((resolve, reject) => {
-          db.query(`SELECT * FROM person p, user u WHERE p.phone = u.phone AND u.token='${token}'`, (err, result) => {
-            if (err) {
-              console.log(err);
-              reject(err);
-            } else {
-              resolve(result);
-            }
-          });
+            db.query(`SELECT * FROM person p, user u WHERE p.phone = u.phone AND u.token='${token}'`, (err, result) => {
+                if (err) {
+                    console.log(err);
+                    reject(err);
+                } else {
+                    resolve(result);
+                }
+            });
         });
     } catch (error) {
         console.log(error);
     }
-  };
+};
 
 const potentialLover = async (user) => {
     try {
         return new Promise((resolve, reject) => {
-            db.query(`
+            db.query(
+                `
                 SELECT p.id, p.full_name, p.dob, p.phone, p.sex, p.sex_oriented, p.relationship_oriented_id, p.about_me 
                 FROM person p
                 WHERE
@@ -496,19 +478,21 @@ const potentialLover = async (user) => {
                     NOT EXISTS (
                         SELECT * FROM honeyaa.like l
                         WHERE l.target_id = p.id and l.person_id = ${user.id}
-                    )`, (err, result) => {
+                    )`,
+                (err, result) => {
                     if (err) {
                         console.log(err);
                         reject(err);
                     } else {
                         resolve(result);
                     }
-            });
+                },
+            );
         });
     } catch (error) {
         console.log(error);
     }
-}
+};
 
 const getImageByUserId = async (person_id) => {
     const createFullImageList = async (images) => {
@@ -559,7 +543,7 @@ const getMyInterestByUserId = async (userId) => {
                     resolve(result);
                 }
             });
-        })
+        });
     } catch (error) {
         console.log(error);
     }
@@ -568,27 +552,29 @@ const getMyInterestByUserId = async (userId) => {
 const getRelationshipOrientedByUserId = async (userId) => {
     try {
         return new Promise((resolve, reject) => {
-            db.query(`
+            db.query(
+                `
                 SELECT ro.name, ro.id
                 FROM relationship_oriented ro, person ps   
                 where ps.relationship_oriented_id = ro.id and ps.id = ${userId}
-            `, (err, result) => {
+            `,
+                (err, result) => {
                     if (err) {
                         console.log(err);
                         reject(err);
                     } else {
                         resolve(result);
                     }
-            });
-        })
+                },
+            );
+        });
     } catch (error) {
         console.log(error);
     }
-}
+};
 
 module.exports = {
     getUserList,
-    getRecommendationUserDataList,
     getUser,
     postUser,
     signoutUser,

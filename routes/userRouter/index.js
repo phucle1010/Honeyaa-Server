@@ -3,7 +3,6 @@ const router = express.Router();
 
 const userController = require('../../controller/userController');
 
-router.get('/recommendation', userController.handleGetRecommendationUserDataList);
 router.get('/data', userController.handleGetUserData);
 router.post('/signup', userController.handlePostUser);
 router.post('/signout', userController.handleSignoutUser);

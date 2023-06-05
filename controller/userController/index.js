@@ -10,11 +10,6 @@ const handleGetUserDataList = (req, res) => {
     userModel.getUserList(req, res);
 };
 
-const handleGetRecommendationUserDataList = (req, res) => {
-    const requestedUserId = req.query.user_id;
-    userModel.getRecommendationUserDataList(requestedUserId, res);
-};
-
 const handlePostUser = (req, res) => {
     userModel.postUser(req, res);
 };
@@ -135,67 +130,65 @@ const handleGetTopLike = (req, res) => {
 
 const getPotentialLover = async (req, res) => {
     try {
-        const {token} = req.query;
+        const { token } = req.query;
         const user = await userModel.getUserInfoByToken(token);
         if (!user.length) {
             return res.send({
                 statusCode: 403,
-                responseData: `user was not found!1`,
+                responseData: `User was not found!`,
             });
         }
-    
+
         const userInfo = user[0];
-        console.log(userInfo);
 
         if (!userInfo) {
             return res.send({
                 statusCode: 403,
-                responseData: `user was not found!3`,
+                responseData: `User was not found!`,
             });
         }
-    
+
         const userPotentials = await userModel.potentialLover(userInfo);
         const userPotential = userPotentials[0];
-        console.log(userPotential);
+        // console.log(userPotential);
         if (!userPotential) {
             return res.send({
                 statusCode: 403,
-                responseData: `user was not found!4`,
+                responseData: `user was not found!`,
             });
         }
-            
+
         const images = await userModel.getImageByUserId(userPotential.id);
-    
+
         const interests = await userModel.getMyInterestByUserId(userPotential.id);
         const approachObject = await userModel.getRelationshipOrientedByUserId(userPotential.id);
-    
+
         let userPotentialLover = {
             id: userPotential.id,
             name: userPotential.full_name,
             dob: userPotential.dob,
-            status: "Đang hoạt động",
+            status: 'Đang hoạt động',
             distance: 1,
-            gender: userPotential.sex?userPotential.sex: null,
+            gender: userPotential.sex ? userPotential.sex : null,
             img: images,
             hobbies: interests,
             introduction: userPotential.about_me,
             socialContact: null,
-            approachObject: approachObject, 
-        }
-    
+            approachObject: approachObject,
+        };
+
         if (userPotentialLover) {
             console.log(userPotentialLover);
             res.status(200).json(userPotentialLover);
         }
     } catch (error) {
-        res.status(500).json("!!!");
+        res.status(500).json('!!!');
     }
-}
+};
 
 module.exports = {
     handleGetUserData,
     handleGetUserDataList,
-    handleGetRecommendationUserDataList,
     handlePostUser,
     handleSignoutUser,
     handleCheckPhone,
