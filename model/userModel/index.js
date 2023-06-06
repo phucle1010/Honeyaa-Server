@@ -65,27 +65,18 @@ const postUser = (req, res) => {
     const { phone, pass, name, birthday, photo, photo1, gender, obgender, interests } = req.body;
     const password = hashPass(pass.toString());
 
-    const insertInterests = () => {
-        db.query(`INSERT INTO interest (person_id) VALUES ('${person_id}')`, (err, result) => {
-            if (err) {
-                res.status(500).json({ err });
-            } else {
-                const interest_id = result.insertId;
-                for (let i = 0; i < interests.length; i++) {
-                    db.query(
-                        `INSERT INTO detail_interest (name, interest_id) VALUES ('${interests[i]}','${interest_id}')`,
-                        (err, sesult) => {
-                            if (err) {
-                                res.status(500).json({ err });
-                            } else {
-                                console.log(result);
-                                res.send(result);
-                            }
-                        },
-                    );
+    const insertInterests = (person_id) => {
+        interests.forEach((interestId) => {
+            const sql = `INSERT INTO my_interest (person_id, interest_id) VALUES ('${person_id}', '${interestId}')`;
+            db.query(sql, (err, result) => {
+                if (err) {
+                    console.error('Error saving interest:', err);
+                } else {
+                    console.log('Interest saved successfully!');
                 }
-            }
+            });
         });
+        return res.status(200).json('Đăng ký thành công');
     };
 
     const insertImageData = (person_id) => {
@@ -95,7 +86,7 @@ const postUser = (req, res) => {
                 if (err) {
                     res.status(500).json({ err });
                 } else {
-                    insertInterests();
+                    insertInterests(person_id);
                 }
             },
         );
@@ -103,7 +94,7 @@ const postUser = (req, res) => {
 
     const insertPersonData = () => {
         db.query(
-            `INSERT INTO person (full_name, dob, phone, sex, sex_oriented) VALUES ('${name}', '${birthday}', '${phone}', '${gender}', '${obgender}')`,
+            `INSERT INTO person (full_name, dob, phone, sex, sex_oriented, about_me, address) VALUES ('${name}', '${birthday}', '${phone}', '${gender}', '${obgender}', '${name}', 'null')`,
             (err, result) => {
                 if (err) {
                     res.status(500).json({ err });
