@@ -18,12 +18,15 @@ router.get('/profile/:personId', userController.handleGetProfileList);
 router.get('/interest', userController.handleGetInterestList);
 router.get('/myInterest/:personId', userController.handleGetMyInterest);
 router.get('/relationship_oriented', userController.handleGetRelationshipOrientedList);
+router.get('/chat/:personId/:targetId', userController.handleGetChat);
+router.get('/matchchat/:personId', userController.handleGetMatchChat);
 router.get('/', userController.handleGetUserDataList);
 router.put('/myBasic/:myBasicId', userController.handleUpdateMyBasic);
 router.put('/profile/:personId', userController.handleUpdateMyBasic);
 router.post('/login', userController.handleLoginUser);
 router.get('/profile/img', userController.handleGetImageOfUser);
 router.post('/profile/img/post', userController.handlePostImageIntoProfile);
+router.post('/message/post', userController.handlePostMessage);
 router.delete('/profile/img/delete', userController.handleRemoveImageFromProfile);
 
 module.exports = router;

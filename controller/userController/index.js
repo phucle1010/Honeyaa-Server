@@ -124,6 +124,16 @@ const handleGetTopLike = (req, res) => {
     const person_id = req.query.person_id;
     userModel.getTopLike(req,res)
 };
+const handleGetChat = (req, res) => {
+    userModel.getChat(req,res)
+};
+
+const handlePostMessage = (req, res) => {
+    userModel.postMessage(req, res);
+};
+const handleGetMatchChat = (req, res) => {
+    userModel.getMatchChat(req,res)
+};
 module.exports = {
     handleGetUserData,
     handleGetUserDataList,
@@ -144,5 +154,8 @@ module.exports = {
     handleGetImageOfUser,
     handlePostImageIntoProfile,
     handleRemoveImageFromProfile,
-    handleGetTopLike
+    handleGetTopLike,
+    handleGetChat,
+    handlePostMessage,
+    handleGetMatchChat
 };
