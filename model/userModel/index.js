@@ -448,6 +448,40 @@ const getTopLike = (req, res) => {
         }
         res.send(result);
     });
+  };
+  const getChat = (req, res) => {
+    const {personId,targetId} = req.params
+    const query = `SELECT dc.id AS chat_id, dc.content, dc.sent_time ,dc.person_id AS sender_id, p.full_name AS sender_name
+                    FROM chat c
+                    JOIN detail_chat dc ON c.id = dc.chat_id
+                    JOIN person p ON dc.person_id = p.id
+                    WHERE (c.person_id =? AND c.target_id =?) OR (c.person_id =? AND c.target_id =?)
+                    ORDER BY dc.sent_time desc
+                    LIMIT 20;`;
+    db.query(query,[personId, targetId, targetId, personId], (err, result) => {
+      if (err) {
+        console.log(err)
+      }
+      res.send(result)
+    });
+  };
+  const postMessage = (req, res) => {
+    const {chatId, personId, content, sentTime} = req.body
+    const query = 'INSERT INTO detail_chat (chat_id, person_id, content, sent_time) VALUE (?, ?, ?, ?)'
+    db.query(query,[chatId, personId, content, sentTime], (err, result) => {
+        if (err) {
+            console.log(err)
+            res.send({
+                statusCode: 400,
+                responseData: err.toString(),
+            });
+        } else {
+            res.send({
+                statusCode: 200,
+                responseData: 'Success',
+            });
+        }
+    });
 };
 
 const getUserInfoByToken = (token) => {
@@ -575,6 +609,40 @@ const getRelationshipOrientedByUserId = async (userId) => {
     }
 };
 
+const getMatchChat = (req, res) => {
+    const {personId} =req.params
+    const query = `SELECT p.id as target_id, p.full_name, GROUP_CONCAT(DISTINCT pi.image SEPARATOR ',') AS image, c.id as chat_id, dt.content
+    FROM person p
+    LEFT JOIN profile_img pi ON pi.person_id = p.id
+    RIGHT JOIN chat c ON c.person_id = p.id OR c.target_id = p.id
+    LEFT JOIN (
+    SELECT p.id, p.full_name, GROUP_CONCAT(DISTINCT pi.image SEPARATOR ',') AS image, c1.content, c1.id as chat_id
+    FROM person p
+    LEFT JOIN profile_img pi ON pi.person_id = p.id
+    RIGHT JOIN chat c ON c.person_id = p.id OR c.target_id = p.id
+    LEFT JOIN (
+    SELECT c.id, dc.id AS chat_id, dc.content, dc.sent_time, dc.person_id AS sender_id, p.full_name AS sender_name
+    FROM chat c
+    JOIN detail_chat dc ON c.id = dc.chat_id
+    JOIN person p ON dc.person_id = p.id
+    WHERE dc.sent_time = (
+    SELECT MAX(sent_time)
+    FROM detail_chat
+    WHERE chat_id = c.id
+    )
+    ORDER BY dc.sent_time desc
+    ) c1 ON c1.sender_id = p.id
+    GROUP BY p.id, p.full_name, c1.content
+    ) dt on dt.chat_id = c.id
+    where p.id<>? and (c.person_id=? or c.target_id=?)
+    GROUP BY p.id;`;
+    db.query(query,[personId,personId,personId], (err, result) => {
+      if (err) {
+        console.log(err)
+      }
+      res.send(result)
+    });
+  };
 module.exports = {
     getUserList,
     getUser,
@@ -597,6 +665,9 @@ module.exports = {
     putProfile,
     updateMyBasic,
     getTopLike,
+    getChat,
+    postMessage,
+    getMatchChat,
     getUserInfoByToken,
     potentialLover,
     getImageByUserId,

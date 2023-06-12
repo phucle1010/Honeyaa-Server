@@ -135,6 +135,16 @@ const handleRemoveImageFromProfile = (req, res) => {
 const handleGetTopLike = (req, res) => {
     userModel.getTopLike(req, res);
 };
+const handleGetChat = (req, res) => {
+    userModel.getChat(req,res)
+};
+
+const handlePostMessage = (req, res) => {
+    userModel.postMessage(req, res);
+};
+const handleGetMatchChat = (req, res) => {
+    userModel.getMatchChat(req,res)
+};
 
 const getPotentialLover = async (req, res) => {
     try {
@@ -217,5 +227,8 @@ module.exports = {
     handlePostImageIntoProfile,
     handleRemoveImageFromProfile,
     handleGetTopLike,
+    handleGetChat,
+    handlePostMessage,
+    handleGetMatchChat,
     getPotentialLover,
 };
