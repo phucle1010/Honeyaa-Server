@@ -81,33 +81,36 @@ const handleLoginUser = (req, res) => {
         userModel.loginUser(req, res);
     }
 };
-const handleGetProfileList  = (req,res) =>{
-    userModel.getProfile(req,res);
-}
-const handleUpdateMyBasic  = (req,res) =>{
-    userModel.updateMyBasic(req,res);
-}
-const handleGetInterestList  = (req,res) =>{
-    userModel.getInterestList(req,res);
-}
+const handleGetProfileList = (req, res) => {
+    userModel.getProfile(req, res);
+};
+const handleUpdateMyBasic = (req, res) => {
+    userModel.updateMyBasic(req, res);
+};
+const handleGetInterestList = (req, res) => {
+    userModel.getInterestList(req, res);
+};
 const handleGetMyInterest = (req, res) => {
-    userModel.getMyInterest(req,res);
-}
+    userModel.getMyInterest(req, res);
+};
 const handlePostMyInterest = (req, res) => {
-    userModel.postMyInterest(req,res);
-}
+    userModel.postMyInterest(req, res);
+};
 const handleGetRelationshipOrientedList = (req, res) => {
-    userModel.getRelationshipOrientedList(req,res);
-}
+    userModel.getRelationshipOrientedList(req, res);
+};
 const handlePutProfile = (req, res) => {
-    userModel.putProfile(req,res);
-}
+    userModel.putProfile(req, res);
+};
 const handleGetImageOfUser = (req, res) => {
-    const person_id = req.query.person_id;
-    userModel.getImageOfUser(person_id, res);
+    const user_id = req.query.user_id;
+    userModel.getImageOfUser(user_id, res);
 };
 
-
+const handleGetAvatarOfUser = (req, res) => {
+    const user_id = req.query.user_id;
+    userModel.getAvatarOfUser(user_id, res);
+};
 
 const handlePostImageIntoProfile = (req, res) => {
     const photo = req.body.insertPhoto;
@@ -120,9 +123,9 @@ const handleRemoveImageFromProfile = (req, res) => {
     const person_id = req.query.person_id;
     userModel.removeImageFromProfile(photo_id, person_id, res);
 };
+
 const handleGetTopLike = (req, res) => {
-    const person_id = req.query.person_id;
-    userModel.getTopLike(req,res)
+    userModel.getTopLike(req, res);
 };
 const handleGetChat = (req, res) => {
     userModel.getChat(req,res)
@@ -134,6 +137,65 @@ const handlePostMessage = (req, res) => {
 const handleGetMatchChat = (req, res) => {
     userModel.getMatchChat(req,res)
 };
+
+const getPotentialLover = async (req, res) => {
+    try {
+        const { token } = req.query;
+        const user = await userModel.getUserInfoByToken(token);
+        if (!user.length) {
+            return res.send({
+                statusCode: 403,
+                responseData: `User was not found!`,
+            });
+        }
+
+        const userInfo = user[0];
+
+        if (!userInfo) {
+            return res.send({
+                statusCode: 403,
+                responseData: `User was not found!`,
+            });
+        }
+
+        const userPotentials = await userModel.potentialLover(userInfo);
+        const userPotential = userPotentials[0];
+        // console.log(userPotential);
+        if (!userPotential) {
+            return res.send({
+                statusCode: 403,
+                responseData: `user was not found!`,
+            });
+        }
+
+        const images = await userModel.getImageByUserId(userPotential.id);
+
+        const interests = await userModel.getMyInterestByUserId(userPotential.id);
+        const approachObject = await userModel.getRelationshipOrientedByUserId(userPotential.id);
+
+        let userPotentialLover = {
+            id: userPotential.id,
+            name: userPotential.full_name,
+            dob: userPotential.dob,
+            status: 'Đang hoạt động',
+            distance: 1,
+            gender: userPotential.sex ? userPotential.sex : null,
+            img: images,
+            hobbies: interests,
+            introduction: userPotential.about_me,
+            socialContact: null,
+            approachObject: approachObject,
+        };
+
+        if (userPotentialLover) {
+            console.log(userPotentialLover);
+            res.status(200).json(userPotentialLover);
+        }
+    } catch (error) {
+        res.status(500).json('!!!');
+    }
+};
+
 module.exports = {
     handleGetUserData,
     handleGetUserDataList,
@@ -152,10 +214,12 @@ module.exports = {
     handleGetRelationshipOrientedList,
     handlePutProfile,
     handleGetImageOfUser,
+    handleGetAvatarOfUser,
     handlePostImageIntoProfile,
     handleRemoveImageFromProfile,
     handleGetTopLike,
     handleGetChat,
     handlePostMessage,
-    handleGetMatchChat
+    handleGetMatchChat,
+    getPotentialLover,
 };
