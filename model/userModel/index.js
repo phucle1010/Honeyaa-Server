@@ -1,6 +1,7 @@
 const db = require('../../store');
 const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
+const { resolve } = require('path');
 const { send } = require('process');
 var client = require('twilio')(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_TOKEN);
 
@@ -34,9 +35,31 @@ const getUser = (token, res) => {
                 responseData: err.toString(),
             });
         } else {
-            res.send({
-                statusCode: 200,
-                responseData: result,
+            const person_info = result;
+            new Promise((resolve, reject) => {
+                db.query(`SELECT * FROM profile_img WHERE person_id=${person_info[0].id}`, (err, result) => {
+                    if (err) {
+                        res.send({
+                            statusCode: 400,
+                            responseData: err.toString(),
+                        });
+                    } else {
+                        resolve(result);
+                    }
+                    if (err) {
+                        console.log(err);
+                        reject(err);
+                    } else {
+                        resolve(result);
+                    }
+                });
+            }).then((image) => {
+                person_info[0].img = image;
+                console.log(person_info);
+                res.send({
+                    statusCode: 200,
+                    responseData: person_info,
+                });
             });
         }
     });
@@ -94,7 +117,8 @@ const postUser = (req, res) => {
     };
 
     const insertUserData = () => {
-        db.query(`INSERT INTO user (phone, pass) VALUES  ('${phone}', '${password}')`, (err, result) => {
+        const sql = 'INSERT INTO user (phone, pass) VALUES';
+        db.query(`${sql} ('${phone}', '${password}')`, (err, result) => {
             if (err) {
                 res.status(500).json(err.toString());
             } else {
@@ -448,9 +472,9 @@ const getTopLike = (req, res) => {
         }
         res.send(result);
     });
-  };
-  const getChat = (req, res) => {
-    const {personId,targetId} = req.params
+};
+const getChat = (req, res) => {
+    const { personId, targetId } = req.params;
     const query = `SELECT dc.id AS chat_id, dc.content, dc.sent_time ,dc.person_id AS sender_id, p.full_name AS sender_name
                     FROM chat c
                     JOIN detail_chat dc ON c.id = dc.chat_id
@@ -458,19 +482,19 @@ const getTopLike = (req, res) => {
                     WHERE (c.person_id =? AND c.target_id =?) OR (c.person_id =? AND c.target_id =?)
                     ORDER BY dc.sent_time desc
                     LIMIT 20;`;
-    db.query(query,[personId, targetId, targetId, personId], (err, result) => {
-      if (err) {
-        console.log(err)
-      }
-      res.send(result)
-    });
-  };
-  const postMessage = (req, res) => {
-    const {chatId, personId, content, sentTime} = req.body
-    const query = 'INSERT INTO detail_chat (chat_id, person_id, content, sent_time) VALUE (?, ?, ?, ?)'
-    db.query(query,[chatId, personId, content, sentTime], (err, result) => {
+    db.query(query, [personId, targetId, targetId, personId], (err, result) => {
         if (err) {
-            console.log(err)
+            console.log(err);
+        }
+        res.send(result);
+    });
+};
+const postMessage = (req, res) => {
+    const { chatId, personId, content, sentTime } = req.body;
+    const query = 'INSERT INTO detail_chat (chat_id, person_id, content, sent_time) VALUE (?, ?, ?, ?)';
+    db.query(query, [chatId, personId, content, sentTime], (err, result) => {
+        if (err) {
+            console.log(err);
             res.send({
                 statusCode: 400,
                 responseData: err.toString(),
@@ -531,22 +555,6 @@ const potentialLover = async (user) => {
 };
 
 const getImageByUserId = async (person_id) => {
-    const createFullImageList = async (images) => {
-        const emptyImage = {
-            id: null,
-            image: '',
-            person_id: null,
-        };
-
-        if (images.length < 6) {
-            let newImages = [...images];
-            for (let i = images.length; i < 6; i++) {
-                newImages = [...newImages, emptyImage];
-            }
-            return newImages;
-        }
-        return images;
-    };
     try {
         const result = await new Promise((resolve, reject) => {
             db.query(`SELECT * FROM profile_img WHERE person_id=${person_id}`, (err, result) => {
@@ -558,7 +566,7 @@ const getImageByUserId = async (person_id) => {
                 }
             });
         });
-        return await createFullImageList(result);
+        return await result;
     } catch (err) {
         console.log(err);
         throw err;
@@ -610,7 +618,7 @@ const getRelationshipOrientedByUserId = async (userId) => {
 };
 
 const getMatchChat = (req, res) => {
-    const {personId} =req.params
+    const { personId } = req.params;
     const query = `SELECT p.id as target_id, p.full_name, GROUP_CONCAT(DISTINCT pi.image SEPARATOR ',') AS image, c.id as chat_id, dt.content
     FROM person p
     LEFT JOIN profile_img pi ON pi.person_id = p.id
@@ -636,13 +644,13 @@ const getMatchChat = (req, res) => {
     ) dt on dt.chat_id = c.id
     where p.id<>? and (c.person_id=? or c.target_id=?)
     GROUP BY p.id;`;
-    db.query(query,[personId,personId,personId], (err, result) => {
-      if (err) {
-        console.log(err)
-      }
-      res.send(result)
+    db.query(query, [personId, personId, personId], (err, result) => {
+        if (err) {
+            console.log(err);
+        }
+        res.send(result);
     });
-  };
+};
 module.exports = {
     getUserList,
     getUser,

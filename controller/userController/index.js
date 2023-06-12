@@ -115,6 +115,14 @@ const handleGetImageOfUser = (req, res) => {
     userModel.getImageOfUser(user_id, res);
 };
 
+const handleGetReviewImageOfUser = async (req, res) => {
+    const result = await userModel.getImageByUserId(req.query.person_id);
+    await res.send({
+        statusCode: 200,
+        responseData: result,
+    });
+};
+
 const handleGetAvatarOfUser = (req, res) => {
     const user_id = req.query.user_id;
     userModel.getAvatarOfUser(user_id, res);
@@ -136,39 +144,24 @@ const handleGetTopLike = (req, res) => {
     userModel.getTopLike(req, res);
 };
 const handleGetChat = (req, res) => {
-    userModel.getChat(req,res)
+    userModel.getChat(req, res);
 };
 
 const handlePostMessage = (req, res) => {
     userModel.postMessage(req, res);
 };
 const handleGetMatchChat = (req, res) => {
-    userModel.getMatchChat(req,res)
+    userModel.getMatchChat(req, res);
 };
 
 const getPotentialLover = async (req, res) => {
     try {
-        const { token } = req.query;
-        const user = await userModel.getUserInfoByToken(token);
-        if (!user.length) {
-            return res.send({
-                statusCode: 403,
-                responseData: `User was not found!`,
-            });
-        }
-
-        const userInfo = user[0];
-
-        if (!userInfo) {
-            return res.send({
-                statusCode: 403,
-                responseData: `User was not found!`,
-            });
-        }
+        const userInfo = req.query.userInfo;
 
         const userPotentials = await userModel.potentialLover(userInfo);
         const userPotential = userPotentials[0];
-        // console.log(userPotential);
+        console.log(userPotential);
+
         if (!userPotential) {
             return res.send({
                 statusCode: 403,
@@ -196,7 +189,7 @@ const getPotentialLover = async (req, res) => {
         };
 
         if (userPotentialLover) {
-            console.log(userPotentialLover);
+            // console.log('userPotentialLover: ', userPotentialLover);
             res.status(200).json(userPotentialLover);
         }
     } catch (error) {
@@ -223,6 +216,7 @@ module.exports = {
     handleGetRelationshipOrientedList,
     handlePutProfile,
     handleGetImageOfUser,
+    handleGetReviewImageOfUser,
     handleGetAvatarOfUser,
     handlePostImageIntoProfile,
     handleRemoveImageFromProfile,
