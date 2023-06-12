@@ -46,62 +46,61 @@ const postUser = (req, res) => {
     const { phone, pass, name, birthday, photo, photo1, gender, obgender, interests } = req.body;
     const password = hashPass(pass.toString());
 
-    const insertInterests = () => {
-        db.query(`INSERT INTO interest (person_id) VALUES ('${person_id}')`, (err, result) => {
-            if (err) {
-                res.status(500).json({ err });
-            } else {
-                const interest_id = result.insertId;
-                for (let i = 0; i < interests.length; i++) {
-                    db.query(
-                        `INSERT INTO detail_interest (name, interest_id) VALUES ('${interests[i]}','${interest_id}')`,
-                        (err, sesult) => {
-                            if (err) {
-                                res.status(500).json({ err });
-                            } else {
-                                console.log(result);
-                                res.send(result);
-                            }
-                        },
-                    );
+    const insertInterests = (person_id) => {
+        interests.forEach((interestId) => {
+            const sql = `INSERT INTO my_interest (person_id, interest_id) VALUES (${person_id}, ${interestId})`;
+            db.query(sql, (err, result) => {
+                if (err) {
+                    console.error('Error saving interest:', err);
+                } else {
+                    console.log('Interest saved successfully!');
                 }
-            }
+            });
         });
+        res.status(200).json('Sign Up Successfully');
     };
 
     const insertImageData = (person_id) => {
         db.query(
-            `INSERT INTO profile_img (image, person_id) VALUES ('${photo}','${person_id}'), ('${photo1}','${person_id}');`,
+            `INSERT INTO profile_img (image, person_id) VALUES ('${photo}', ${person_id}), ('${photo1}',${person_id});`,
             (err, result) => {
                 if (err) {
-                    res.status(500).json({ err });
+                    res.status(500).json(err.toString());
                 } else {
-                    insertInterests();
+                    if (result.affectedRows > 0) {
+                        insertInterests(person_id);
+                    }
                 }
             },
         );
     };
 
     const insertPersonData = () => {
+        const date = new Date(Date.parse(birthday));
+        const convertedDate = `${date.getUTCFullYear()}/${date.getUTCMonth() + 1}/${date.getDate()}`;
         db.query(
-            `INSERT INTO person (full_name, dob, phone, sex, sex_oriented) VALUES ('${name}', '${birthday}', '${phone}', '${gender}', '${obgender}')`,
+            `INSERT INTO person (full_name, dob, phone, sex, sex_oriented, about_me, address) VALUES ('${name}', '${convertedDate}', '${phone}', ${gender}, ${obgender}, 'Trống', 'Trống')`,
             (err, result) => {
                 if (err) {
-                    res.status(500).json({ err });
+                    res.status(500).json(err.toString());
                 } else {
-                    const person_id = result.insertId;
-                    insertImageData(person_id);
+                    if (result.affectedRows > 0) {
+                        const person_id = result.insertId;
+                        insertImageData(person_id);
+                    }
                 }
             },
         );
     };
 
     const insertUserData = () => {
-        db.query(`INSERT INTO user (phone, pass) VALUES ('${phone}', "${password}")`, (err, result) => {
+        db.query(`INSERT INTO user (phone, pass) VALUES  ('${phone}', '${password}')`, (err, result) => {
             if (err) {
-                res.status(500).json({ err });
+                res.status(500).json(err.toString());
             } else {
-                insertPersonData();
+                if (result.affectedRows > 0) {
+                    insertPersonData();
+                }
             }
         });
     };
@@ -126,25 +125,28 @@ const signoutUser = (token, res) => {
 };
 
 const checkPhone = (phonenumber, res) => {
-    db.query('SELECT * FROM user WHERE phone = ?', [phonenumber], (error, results) => {
+    db.query(`SELECT * FROM user WHERE phone = '${phonenumber}'`, (error, results) => {
         if (error) {
             res.status(500).json({ error });
-        } else if (results.length !== 0) {
-            res.status(404).json({ error: 'Phone number has sign up' });
         } else {
-            client.verify.v2
-                .services(process.env.TWILIO_SERVICE_SID)
-                .verifications.create({
-                    to: `+84${phonenumber}`,
-                    channel: 'sms',
-                })
-                .then((data) => {
-                    res.status(200).send({
-                        message: 'Verification is sent!!',
-                        phonenumber,
-                        data,
+            if (results.length !== 0) {
+                res.status(404).json({ error: 'Phone number has been registered' });
+            } else {
+                console.log('phone number: ', phonenumber);
+                client.verify.v2
+                    .services(process.env.TWILIO_SERVICE_SID)
+                    .verifications.create({
+                        to: `+84${phonenumber}`,
+                        channel: 'sms',
+                    })
+                    .then((data) => {
+                        res.status(200).send({
+                            message: 'Verification is sent!!',
+                            phonenumber,
+                            data,
+                        });
                     });
-                });
+            }
         }
     });
 };

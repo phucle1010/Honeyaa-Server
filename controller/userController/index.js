@@ -20,7 +20,7 @@ const handleSignoutUser = (req, res) => {
 };
 
 const handleCheckPhone = (req, res) => {
-    const phonenumber = req.query;
+    const phonenumber = req.query.phonenumber;
     if (phonenumber) {
         console.log(phonenumber);
         userModel.checkPhone(phonenumber, res);
@@ -45,7 +45,7 @@ const handleAuthen = (req, res) => {
 };
 
 const handleVerifyPhone = (req, res) => {
-    const phonenumber = req.body.phonenumber;
+    const phonenumber = req.query.phonenumber;
     if (phonenumber) {
         userModel.verifyPhone(phonenumber, res);
     } else {
@@ -69,6 +69,14 @@ const handleVerifyOTP = (req, res) => {
             data,
         });
     }
+};
+
+const handleCheckOtp = (req, res) => {
+    const { phone, otp } = req.body;
+    console.log(req.body);
+
+    if (!(phone && otp.length === 4)) return res.status(400).json('Something was wrong, please try again');
+    else userModel.verifyOTP(phone, otp, res);
 };
 
 const handleLoginUser = (req, res) => {
@@ -195,6 +203,7 @@ module.exports = {
     handleAuthen,
     handleVerifyPhone,
     handleVerifyOTP,
+    handleCheckOtp,
     handleLoginUser,
     handleGetProfileList,
     handleUpdateMyBasic,
