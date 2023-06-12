@@ -192,6 +192,14 @@ const getPotentialLover = async (req, res) => {
     }
 }
 
+const checkOtp = (req, res) => {
+    const {phone, otp} = req.body;
+    console.log(req.body);
+
+    if (!(phone && otp.length === 4)) return res.status(400).json('Something was wrong, please try again');
+    else userModel.verifyOTP(phone, otp, res);
+}
+
 module.exports = {
     handleGetUserData,
     handleGetUserDataList,
@@ -216,4 +224,5 @@ module.exports = {
     handleRemoveImageFromProfile,
     handleGetTopLike,
     getPotentialLover,
+    checkOtp,
 };

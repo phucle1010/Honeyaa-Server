@@ -62,7 +62,10 @@ const getUser = (token, res) => {
 };
 
 const postUser = (req, res) => {
-    const { phone, pass, name, birthday, photo, photo1, gender, obgender, interests } = req.body;
+    const [image, image1] = req.files;
+    const photo = image.buffer;
+    const photo1 = image1.buffer;
+    const { phone, pass, name, birthday, gender, obgender, interests } = req.body;
     const password = hashPass(pass.toString());
 
     const insertInterests = (person_id) => {
@@ -136,8 +139,9 @@ const signoutUser = (token, res) => {
 };
 
 const checkPhone = (phonenumber, res) => {
-    db.query('SELECT * FROM user WHERE phone = ?', [phonenumber], (error, results) => {
+    db.query('SELECT * FROM user WHERE phone = ?', [phonenumber.phonenumber], (error, results) => {
         if (error) {
+            console.log('error: ', error);
             res.status(500).json({ error });
         } else if (results.length !== 0) {
             res.status(404).json({ error: 'Phone number has sign up' });
@@ -145,7 +149,7 @@ const checkPhone = (phonenumber, res) => {
             client.verify.v2
                 .services(process.env.TWILIO_SERVICE_SID)
                 .verifications.create({
-                    to: `+84${phonenumber}`,
+                    to: `+84${phonenumber.phonenumber}`,
                     channel: 'sms',
                 })
                 .then((data) => {
@@ -197,6 +201,7 @@ const verifyPhone = (phonenumber, res) => {
 };
 
 const verifyOTP = (phonenumber, code, res) => {
+    console.log(phonenumber, code);
     client.verify.v2
         .services(process.env.TWILIO_SERVICE_SID)
         .verificationChecks.create({
