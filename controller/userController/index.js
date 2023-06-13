@@ -16,9 +16,9 @@ const handlePostUser = (req, res) => {
 };
 
 const handleSignoutUser = (req, res) => {
-    const token = req.body.token;
+    const phone = req.body.phone;
     const device_id = req.body.device_id;
-    userModel.signoutUser(token, device_id, res);
+    userModel.signoutUser(phone, device_id, res);
 };
 
 const handleCheckPhone = (req, res) => {

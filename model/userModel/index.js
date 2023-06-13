@@ -158,7 +158,7 @@ const postUser = (req, res) => {
     insertUserData();
 };
 
-const signoutUser = (token, device_id, res) => {
+const signoutUser = (phone, device_id, res) => {
     const updateUserInDeviceData = () => {
         db.query(`UPDATE user_in_device SET is_using = 0 WHERE device_id = '${device_id}'`, (err, result) => {
             if (err) {
@@ -177,7 +177,7 @@ const signoutUser = (token, device_id, res) => {
         });
     };
 
-    db.query(`UPDATE user SET token='${token}'`, (err, result) => {
+    db.query(`UPDATE user SET token='' WHERE phone='${phone}'`, (err, result) => {
         if (err) {
             res.send({
                 statusCode: 400,
