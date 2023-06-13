@@ -630,10 +630,10 @@ const getMatchChat = (req, res) => {
     )
     ORDER BY dc.sent_time desc
     ) c1 ON c1.sender_id = p.id
-    GROUP BY p.id, p.full_name, c1.content
+    GROUP BY p.id, p.full_name, c1.content, c1.id
     ) dt on dt.chat_id = c.id
     where p.id<>? and (c.person_id=? or c.target_id=?)
-    GROUP BY p.id;`;
+    GROUP BY p.id, p.full_name, c.id,dt.content;`;
     db.query(query,[personId,personId,personId], (err, result) => {
       if (err) {
         console.log(err)
