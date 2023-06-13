@@ -158,9 +158,10 @@ const handleGetMatchChat = (req, res) => {
 
 const getPotentialLover = async (req, res) => {
     try {
-        const userInfo = req.query.userInfo;
+        const id = req.query.id;
+        const sex_oriented = req.query.sex_oriented;
 
-        const userPotentials = await userModel.potentialLover(userInfo);
+        const userPotentials = await userModel.potentialLover(id, sex_oriented);
         const userPotential = userPotentials[0];
         console.log(userPotential);
 

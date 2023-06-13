@@ -28,7 +28,6 @@ const getUserList = (req, res) => {
 };
 
 const getUser = (token, device_id, res) => {
-    console.log(device_id);
     const getUserData = () => {
         db.query(`SELECT * FROM person p, user u WHERE p.phone = u.phone AND u.token=${token}`, (err, result) => {
             if (err) {
@@ -77,11 +76,8 @@ const getUser = (token, device_id, res) => {
                     });
                 } else {
                     if (result.length > 0) {
-                        console.log('Có tồn tại');
                         getUserData();
                     } else {
-                        console.log('Ko tồn tại');
-
                         res.send({
                             statusCode: 404,
                             responseData: 'User Not Found In Device',
@@ -634,7 +630,7 @@ const getUserInfoByToken = (token) => {
     }
 };
 
-const potentialLover = async (user) => {
+const potentialLover = async (id, sex_oriented) => {
     try {
         return new Promise((resolve, reject) => {
             db.query(
@@ -642,11 +638,11 @@ const potentialLover = async (user) => {
                 SELECT p.id, p.full_name, p.dob, p.phone, p.sex, p.sex_oriented, p.relationship_oriented_id, p.about_me 
                 FROM person p
                 WHERE
-                    p.id != ${user.id} and
-                    p.sex = ${user.sex_oriented} and
+                    p.id != ${id} and
+                    p.sex = ${sex_oriented} and
                     NOT EXISTS (
                         SELECT * FROM honeyaa.like l
-                        WHERE l.target_id = p.id and l.person_id = ${user.id}
+                        WHERE l.target_id = p.id and l.person_id = ${id}
                     )`,
                 (err, result) => {
                     if (err) {
@@ -664,6 +660,7 @@ const potentialLover = async (user) => {
 };
 
 const getImageByUserId = async (person_id) => {
+    console.log(person_id);
     try {
         const result = await new Promise((resolve, reject) => {
             db.query(`SELECT * FROM profile_img WHERE person_id=${person_id}`, (err, result) => {
