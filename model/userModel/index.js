@@ -1,6 +1,7 @@
 const db = require('../../store');
 const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
+const { resolve } = require('path');
 const { send } = require('process');
 var client = require('twilio')(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_TOKEN);
 
@@ -34,9 +35,31 @@ const getUser = (token, res) => {
                 responseData: err.toString(),
             });
         } else {
-            res.send({
-                statusCode: 200,
-                responseData: result,
+            const person_info = result;
+            new Promise((resolve, reject) => {
+                db.query(`SELECT * FROM profile_img WHERE person_id=${person_info[0].id}`, (err, result) => {
+                    if (err) {
+                        res.send({
+                            statusCode: 400,
+                            responseData: err.toString(),
+                        });
+                    } else {
+                        resolve(result);
+                    }
+                    if (err) {
+                        console.log(err);
+                        reject(err);
+                    } else {
+                        resolve(result);
+                    }
+                });
+            }).then((image) => {
+                person_info[0].img = image;
+                console.log(person_info);
+                res.send({
+                    statusCode: 200,
+                    responseData: person_info,
+                });
             });
         }
     });
@@ -46,62 +69,62 @@ const postUser = (req, res) => {
     const { phone, pass, name, birthday, photo, photo1, gender, obgender, interests } = req.body;
     const password = hashPass(pass.toString());
 
-    const insertInterests = () => {
-        db.query(`INSERT INTO interest (person_id) VALUES ('${person_id}')`, (err, result) => {
-            if (err) {
-                res.status(500).json({ err });
-            } else {
-                const interest_id = result.insertId;
-                for (let i = 0; i < interests.length; i++) {
-                    db.query(
-                        `INSERT INTO detail_interest (name, interest_id) VALUES ('${interests[i]}','${interest_id}')`,
-                        (err, sesult) => {
-                            if (err) {
-                                res.status(500).json({ err });
-                            } else {
-                                console.log(result);
-                                res.send(result);
-                            }
-                        },
-                    );
+    const insertInterests = (person_id) => {
+        interests.forEach((interestId) => {
+            const sql = `INSERT INTO my_interest (person_id, interest_id) VALUES (${person_id}, ${interestId})`;
+            db.query(sql, (err, result) => {
+                if (err) {
+                    console.error('Error saving interest:', err);
+                } else {
+                    console.log('Interest saved successfully!');
                 }
-            }
+            });
         });
+        res.status(200).json('Sign Up Successfully');
     };
 
     const insertImageData = (person_id) => {
         db.query(
-            `INSERT INTO profile_img (image, person_id) VALUES ('${photo}','${person_id}'), ('${photo1}','${person_id}');`,
+            `INSERT INTO profile_img (image, person_id) VALUES ('${photo}', ${person_id}), ('${photo1}',${person_id});`,
             (err, result) => {
                 if (err) {
-                    res.status(500).json({ err });
+                    res.status(500).json(err.toString());
                 } else {
-                    insertInterests();
+                    if (result.affectedRows > 0) {
+                        insertInterests(person_id);
+                    }
                 }
             },
         );
     };
 
     const insertPersonData = () => {
+        const date = new Date(Date.parse(birthday));
+        const convertedDate = `${date.getUTCFullYear()}/${date.getUTCMonth() + 1}/${date.getDate()}`;
         db.query(
-            `INSERT INTO person (full_name, dob, phone, sex, sex_oriented) VALUES ('${name}', '${birthday}', '${phone}', '${gender}', '${obgender}')`,
+            `INSERT INTO person (full_name, dob, phone, sex, sex_oriented, about_me, address) VALUES ('${name}', '${convertedDate}', '${phone}', ${gender}, ${obgender}, 'Trống', 'Trống')`,
             (err, result) => {
                 if (err) {
-                    res.status(500).json({ err });
+                    res.status(500).json(err.toString());
                 } else {
-                    const person_id = result.insertId;
-                    insertImageData(person_id);
+                    if (result.affectedRows > 0) {
+                        const person_id = result.insertId;
+                        insertImageData(person_id);
+                    }
                 }
             },
         );
     };
 
     const insertUserData = () => {
-        db.query(`INSERT INTO user (phone, pass) VALUES ('${phone}', "${password}")`, (err, result) => {
+        const sql = 'INSERT INTO user (phone, pass) VALUES';
+        db.query(`${sql} ('${phone}', '${password}')`, (err, result) => {
             if (err) {
-                res.status(500).json({ err });
+                res.status(500).json(err.toString());
             } else {
-                insertPersonData();
+                if (result.affectedRows > 0) {
+                    insertPersonData();
+                }
             }
         });
     };
@@ -126,25 +149,28 @@ const signoutUser = (token, res) => {
 };
 
 const checkPhone = (phonenumber, res) => {
-    db.query('SELECT * FROM user WHERE phone = ?', [phonenumber], (error, results) => {
+    db.query(`SELECT * FROM user WHERE phone = '${phonenumber}'`, (error, results) => {
         if (error) {
             res.status(500).json({ error });
-        } else if (results.length !== 0) {
-            res.status(404).json({ error: 'Phone number has sign up' });
         } else {
-            client.verify.v2
-                .services(process.env.TWILIO_SERVICE_SID)
-                .verifications.create({
-                    to: `+84${phonenumber}`,
-                    channel: 'sms',
-                })
-                .then((data) => {
-                    res.status(200).send({
-                        message: 'Verification is sent!!',
-                        phonenumber,
-                        data,
+            if (results.length !== 0) {
+                res.status(404).json({ error: 'Phone number has been registered' });
+            } else {
+                console.log('phone number: ', phonenumber);
+                client.verify.v2
+                    .services(process.env.TWILIO_SERVICE_SID)
+                    .verifications.create({
+                        to: `+84${phonenumber}`,
+                        channel: 'sms',
+                    })
+                    .then((data) => {
+                        res.status(200).send({
+                            message: 'Verification is sent!!',
+                            phonenumber,
+                            data,
+                        });
                     });
-                });
+            }
         }
     });
 };
@@ -446,9 +472,9 @@ const getTopLike = (req, res) => {
         }
         res.send(result);
     });
-  };
-  const getChat = (req, res) => {
-    const {personId,targetId} = req.params
+};
+const getChat = (req, res) => {
+    const { personId, targetId } = req.params;
     const query = `SELECT dc.id AS chat_id, dc.content, dc.sent_time ,dc.person_id AS sender_id, p.full_name AS sender_name
                     FROM chat c
                     JOIN detail_chat dc ON c.id = dc.chat_id
@@ -456,19 +482,19 @@ const getTopLike = (req, res) => {
                     WHERE (c.person_id =? AND c.target_id =?) OR (c.person_id =? AND c.target_id =?)
                     ORDER BY dc.sent_time desc
                     LIMIT 20;`;
-    db.query(query,[personId, targetId, targetId, personId], (err, result) => {
-      if (err) {
-        console.log(err)
-      }
-      res.send(result)
-    });
-  };
-  const postMessage = (req, res) => {
-    const {chatId, personId, content, sentTime} = req.body
-    const query = 'INSERT INTO detail_chat (chat_id, person_id, content, sent_time) VALUE (?, ?, ?, ?)'
-    db.query(query,[chatId, personId, content, sentTime], (err, result) => {
+    db.query(query, [personId, targetId, targetId, personId], (err, result) => {
         if (err) {
-            console.log(err)
+            console.log(err);
+        }
+        res.send(result);
+    });
+};
+const postMessage = (req, res) => {
+    const { chatId, personId, content, sentTime } = req.body;
+    const query = 'INSERT INTO detail_chat (chat_id, person_id, content, sent_time) VALUE (?, ?, ?, ?)';
+    db.query(query, [chatId, personId, content, sentTime], (err, result) => {
+        if (err) {
+            console.log(err);
             res.send({
                 statusCode: 400,
                 responseData: err.toString(),
@@ -529,22 +555,6 @@ const potentialLover = async (user) => {
 };
 
 const getImageByUserId = async (person_id) => {
-    const createFullImageList = async (images) => {
-        const emptyImage = {
-            id: null,
-            image: '',
-            person_id: null,
-        };
-
-        if (images.length < 6) {
-            let newImages = [...images];
-            for (let i = images.length; i < 6; i++) {
-                newImages = [...newImages, emptyImage];
-            }
-            return newImages;
-        }
-        return images;
-    };
     try {
         const result = await new Promise((resolve, reject) => {
             db.query(`SELECT * FROM profile_img WHERE person_id=${person_id}`, (err, result) => {
@@ -556,7 +566,7 @@ const getImageByUserId = async (person_id) => {
                 }
             });
         });
-        return await createFullImageList(result);
+        return await result;
     } catch (err) {
         console.log(err);
         throw err;
@@ -608,7 +618,7 @@ const getRelationshipOrientedByUserId = async (userId) => {
 };
 
 const getMatchChat = (req, res) => {
-    const {personId} =req.params
+    const { personId } = req.params;
     const query = `SELECT p.id as target_id, p.full_name, GROUP_CONCAT(DISTINCT pi.image SEPARATOR ',') AS image, c.id as chat_id, dt.content
     FROM person p
     LEFT JOIN profile_img pi ON pi.person_id = p.id
@@ -634,13 +644,13 @@ const getMatchChat = (req, res) => {
     ) dt on dt.chat_id = c.id
     where p.id<>? and (c.person_id=? or c.target_id=?)
     GROUP BY p.id, p.full_name, c.id,dt.content;`;
-    db.query(query,[personId,personId,personId], (err, result) => {
-      if (err) {
-        console.log(err)
-      }
-      res.send(result)
+    db.query(query, [personId, personId, personId], (err, result) => {
+        if (err) {
+            console.log(err);
+        }
+        res.send(result);
     });
-  };
+};
 module.exports = {
     getUserList,
     getUser,
