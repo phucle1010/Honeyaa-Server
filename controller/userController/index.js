@@ -3,7 +3,8 @@ const nodemailer = require('nodemailer');
 
 const handleGetUserData = (req, res) => {
     const token = req.query.token;
-    userModel.getUser(token, res);
+    const device_id = req.query.device_id;
+    userModel.getUser(token, device_id, res);
 };
 
 const handleGetUserDataList = (req, res) => {
@@ -16,7 +17,8 @@ const handlePostUser = (req, res) => {
 
 const handleSignoutUser = (req, res) => {
     const token = req.body.token;
-    userModel.signoutUser(token, res);
+    const device_id = req.body.device_id;
+    userModel.signoutUser(token, device_id, res);
 };
 
 const handleCheckPhone = (req, res) => {

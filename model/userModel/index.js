@@ -27,42 +27,72 @@ const getUserList = (req, res) => {
     });
 };
 
-const getUser = (token, res) => {
-    db.query(`SELECT * FROM person p, user u WHERE p.phone = u.phone AND u.token=${token}`, (err, result) => {
-        if (err) {
-            res.send({
-                statusCode: 400,
-                responseData: err.toString(),
-            });
-        } else {
-            const person_info = result;
-            new Promise((resolve, reject) => {
-                db.query(`SELECT * FROM profile_img WHERE person_id=${person_info[0].id}`, (err, result) => {
-                    if (err) {
-                        res.send({
-                            statusCode: 400,
-                            responseData: err.toString(),
-                        });
-                    } else {
-                        resolve(result);
-                    }
-                    if (err) {
-                        console.log(err);
-                        reject(err);
-                    } else {
-                        resolve(result);
-                    }
-                });
-            }).then((image) => {
-                person_info[0].img = image;
-                console.log(person_info);
+const getUser = (token, device_id, res) => {
+    console.log(device_id);
+    const getUserData = () => {
+        db.query(`SELECT * FROM person p, user u WHERE p.phone = u.phone AND u.token=${token}`, (err, result) => {
+            if (err) {
                 res.send({
-                    statusCode: 200,
-                    responseData: person_info,
+                    statusCode: 400,
+                    responseData: err.toString(),
                 });
-            });
-        }
-    });
+            } else {
+                const person_info = result;
+                new Promise((resolve, reject) => {
+                    db.query(`SELECT * FROM profile_img WHERE person_id=${person_info[0].id}`, (err, result) => {
+                        if (err) {
+                            res.send({
+                                statusCode: 400,
+                                responseData: err.toString(),
+                            });
+                        } else {
+                            resolve(result);
+                        }
+                        if (err) {
+                            console.log(err);
+                            reject(err);
+                        } else {
+                            resolve(result);
+                        }
+                    });
+                }).then((image) => {
+                    person_info[0].img = image;
+                    res.send({
+                        statusCode: 200,
+                        responseData: person_info,
+                    });
+                });
+            }
+        });
+    };
+
+    const checkUserInDevice = () => {
+        db.query(
+            `SELECT * FROM user u, user_in_device ud WHERE u.phone = ud.phone AND device_id = '${device_id}' AND is_using = 1`,
+            (err, result) => {
+                if (err) {
+                    res.send({
+                        statusCode: 400,
+                        responseData: err.toString(),
+                    });
+                } else {
+                    if (result.length > 0) {
+                        console.log('Có tồn tại');
+                        getUserData();
+                    } else {
+                        console.log('Ko tồn tại');
+
+                        res.send({
+                            statusCode: 404,
+                            responseData: 'User Not Found In Device',
+                        });
+                    }
+                }
+            },
+        );
+    };
+
+    checkUserInDevice();
 };
 
 const postUser = (req, res) => {
@@ -132,7 +162,25 @@ const postUser = (req, res) => {
     insertUserData();
 };
 
-const signoutUser = (token, res) => {
+const signoutUser = (token, device_id, res) => {
+    const updateUserInDeviceData = () => {
+        db.query(`UPDATE user_in_device SET is_using = 0 WHERE device_id = '${device_id}'`, (err, result) => {
+            if (err) {
+                res.send({
+                    statusCode: 400,
+                    responseData: err.toString(),
+                });
+            } else {
+                if (result.affectedRows > 0) {
+                    res.send({
+                        statusCode: 200,
+                        responseData: 'Sign out successfully',
+                    });
+                }
+            }
+        });
+    };
+
     db.query(`UPDATE user SET token='${token}'`, (err, result) => {
         if (err) {
             res.send({
@@ -140,10 +188,9 @@ const signoutUser = (token, res) => {
                 responseData: err.toString(),
             });
         } else {
-            res.send({
-                statusCode: 200,
-                responseData: 'Sign out successfully',
-            });
+            if (result.affectedRows > 0) {
+                updateUserInDeviceData();
+            }
         }
     });
 };
@@ -230,7 +277,72 @@ const verifyOTP = (phonenumber, code, res) => {
 };
 
 const loginUser = (req, res) => {
-    const { phone, pass } = req.body;
+    const { phone, pass, device_id } = req.body;
+
+    const createNewUserInDeviceData = (token) => {
+        console.log('create');
+        db.query(
+            `INSERT INTO user_in_device (phone, device_id, is_using) VALUES ('${phone}', '${device_id}', 1)`,
+            (err, result) => {
+                if (err) {
+                    res.send({
+                        statusCode: 400,
+                        responseData: err,
+                    });
+                } else {
+                    if (result.affectedRows > 0) {
+                        res.send({
+                            statusCode: 200,
+                            responseData: token,
+                        });
+                    }
+                }
+            },
+        );
+    };
+
+    const updateUserInDeviceData = (token) => {
+        console.log('update');
+        db.query(
+            `UPDATE user_in_device SET is_using = 1 WHERE phone = '${phone}' AND device_id = '${device_id}'`,
+            (err, result) => {
+                if (err) {
+                    res.send({
+                        statusCode: 400,
+                        responseData: err,
+                    });
+                } else {
+                    if (result.affectedRows > 0) {
+                        res.send({
+                            statusCode: 200,
+                            responseData: token,
+                        });
+                    }
+                }
+            },
+        );
+    };
+
+    const checkUserInDevice = (token) => {
+        db.query(
+            `SELECT * FROM user_in_device WHERE device_id = '${device_id}' AND phone = '${phone}'`,
+            (err, result) => {
+                if (err) {
+                    res.send({
+                        statusCode: 400,
+                        responseData: err,
+                    });
+                } else {
+                    if (result.length > 0) {
+                        updateUserInDeviceData(token);
+                    } else {
+                        createNewUserInDeviceData(token);
+                    }
+                }
+            },
+        );
+    };
+
     db.query(`SELECT * FROM user WHERE phone = '${phone}' AND pass = '${hashPass(pass)}'`, (error, results) => {
         if (error) {
             res.send({ statusCode: 400, responseData: error });
@@ -247,10 +359,7 @@ const loginUser = (req, res) => {
                     });
                 } else {
                     if (result.affectedRows > 0) {
-                        res.send({
-                            statusCode: 200,
-                            responseData: token,
-                        });
+                        checkUserInDevice(token);
                     }
                 }
             });
@@ -640,10 +749,10 @@ const getMatchChat = (req, res) => {
     )
     ORDER BY dc.sent_time desc
     ) c1 ON c1.sender_id = p.id
-    GROUP BY p.id, p.full_name, c1.content
+    GROUP BY p.id, p.full_name, c1.content, c1.id
     ) dt on dt.chat_id = c.id
     where p.id<>? and (c.person_id=? or c.target_id=?)
-    GROUP BY p.id;`;
+    GROUP BY p.id, p.full_name, c.id,dt.content;`;
     db.query(query, [personId, personId, personId], (err, result) => {
         if (err) {
             console.log(err);
@@ -651,6 +760,7 @@ const getMatchChat = (req, res) => {
         res.send(result);
     });
 };
+
 module.exports = {
     getUserList,
     getUser,
