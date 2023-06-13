@@ -62,15 +62,16 @@ const getUser = (token, res) => {
 };
 
 const postUser = (req, res) => {
-    const [image, image1] = req.files;
-    const photo = image.buffer;
-    const photo1 = image1.buffer;
-    const { phone, pass, name, birthday, gender, obgender, interests } = req.body;
+    // const [image, image1] = req.files;
+    // const photo = image.buffer;
+    // const photo1 = image1.buffer;
+    // console.log(req.body);
+    const { phone, pass, name, birthday, gender, obgender, interests, photo, photo1 } = req.body;
     const password = hashPass(pass.toString());
 
     const insertInterests = (person_id) => {
         interests.forEach((interestId) => {
-            const sql = `INSERT INTO my_interest (person_id, interest_id) VALUES ('${person_id}', '${interestId}')`;
+            const sql = `INSERT INTO my_interest (person_id, interest_id) VALUES (${person_id}, ${interestId})`;
             db.query(sql, (err, result) => {
                 if (err) {
                     console.error('Error saving interest:', err);
@@ -84,7 +85,7 @@ const postUser = (req, res) => {
 
     const insertImageData = (person_id) => {
         db.query(
-            `INSERT INTO profile_img (image, person_id) VALUES ('${photo}','${person_id}'), ('${photo1}','${person_id}');`,
+            `INSERT INTO profile_img (image, person_id) VALUES ('${photo}',${person_id}), ('${photo1}',${person_id});`,
             (err, result) => {
                 if (err) {
                     res.status(500).json({ err });
@@ -96,21 +97,25 @@ const postUser = (req, res) => {
     };
 
     const insertPersonData = () => {
+        const date = new Date(Date.parse(birthday));
+        const convertedDate = `${date.getUTCFullYear()}/${date.getUTCMonth() + 1}/${date.getDate()}`;
         db.query(
-            `INSERT INTO person (full_name, dob, phone, sex, sex_oriented, about_me, address) VALUES ('${name}', '${birthday}', '${phone}', '${gender}', '${obgender}', '${name}', 'null')`,
+            `INSERT INTO person (full_name, dob, phone, sex, sex_oriented, about_me, address) VALUES ('${name}', '${convertedDate}', '${phone}', ${gender}, ${obgender}, 'Trống', 'Trống')`,
             (err, result) => {
                 if (err) {
-                    res.status(500).json({ err });
+                    res.status(500).json(err.toString());
                 } else {
-                    const person_id = result.insertId;
-                    insertImageData(person_id);
+                    if (result.affectedRows > 0) {
+                        const person_id = result.insertId;
+                        insertImageData(person_id);
+                    }
                 }
             },
         );
     };
 
     const insertUserData = () => {
-        db.query(`INSERT INTO user (phone, pass) VALUES ('${phone}', "${password}")`, (err, result) => {
+        db.query(`INSERT INTO user (phone, pass) VALUES ('${phone}', '${password}')`, (err, result) => {
             if (err) {
                 res.status(500).json({ err });
             } else {
@@ -480,6 +485,24 @@ const getUserInfoByToken = (token) => {
     }
   };
 
+  const getNotification = async (userId) => {
+    try {
+        const query = `SELECT ps.full_name as 'user', lt.name as 'interact', l.create_at as 'time'  
+                        FROM \`like\` l, person ps, like_type lt 
+                        where l.target_id = 2 and l.person_id = ps.id and l.type_id = lt.id and lt.id != 2
+                        ORDER BY l.create_at DESC;`;
+        return new Promise((resolve, reject) => {
+            db.query(query, (err, result) => {
+                if (err) reject(err);
+                else resolve(result);
+            });
+        });
+    } catch (e) {
+        console.log(e);
+        throw e;
+    }
+  }
+
 const potentialLover = async (user) => {
     try {
         return new Promise((resolve, reject) => {
@@ -610,4 +633,5 @@ module.exports = {
     getImageByUserId,
     getMyInterestByUserId,
     getRelationshipOrientedByUserId,
+    getNotification,
 };

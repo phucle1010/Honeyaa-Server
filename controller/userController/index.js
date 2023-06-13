@@ -199,6 +199,22 @@ const checkOtp = (req, res) => {
     if (!(phone && otp.length === 4)) return res.status(400).json('Something was wrong, please try again');
     else userModel.verifyOTP(phone, otp, res);
 }
+const getNotification = async (req, res) => {
+    try {
+        console.log(req.headers.authentication);
+        const user = await userModel.getUserInfoByToken(req.headers.authentication);
+        if (!user) return res.status(403).json('user was not found!');
+
+        const result = await userModel.getNotification(user.id);
+        console.log(result);
+        return res.status(200).json(result);
+        
+    } catch (e) {
+        console.log(e);
+        return res.status(500).json({detail: e.message});
+    }
+
+}
 
 module.exports = {
     handleGetUserData,
@@ -225,4 +241,5 @@ module.exports = {
     handleGetTopLike,
     getPotentialLover,
     checkOtp,
+    getNotification,
 };

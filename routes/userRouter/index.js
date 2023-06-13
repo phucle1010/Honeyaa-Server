@@ -21,7 +21,7 @@ const userController = require('../../controller/userController');
 
 router.get('/recommendation', userController.handleGetRecommendationUserDataList);
 router.get('/data', userController.handleGetUserData);
-router.post('/signup', upload, userController.handlePostUser);
+router.post('/signup', userController.handlePostUser);
 router.post('/signout', userController.handleSignoutUser);
 router.post('/myInterest/:personid/:data', userController.handlePostMyInterest);
 router.get('/signup/phone', userController.handleCheckPhone);
@@ -43,5 +43,6 @@ router.post('/profile/img/post', userController.handlePostImageIntoProfile);
 router.delete('/profile/img/delete', userController.handleRemoveImageFromProfile);
 router.get('/potential_love', userController.getPotentialLover);
 router.get('/', userController.handleGetUserDataList);
+router.get('/notification', userController.getNotification);
 
 module.exports = router;
