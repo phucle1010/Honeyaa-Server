@@ -514,7 +514,7 @@ const potentialLover = async (user) => {
                     p.sex = ${user.sex_oriented} and
                     NOT EXISTS (
                         SELECT * FROM honeyaa.like l
-                        WHERE l.target_id = p.id and l.person_id = ${user.id}
+                        WHERE (l.target_id = p.id and l.person_id = ${user.id}) or (l.target_id = ${user.id} and l.person_id = p.id and l.is_matched = 1)
                     )`, (err, result) => {
                     if (err) {
                         console.log(err);
