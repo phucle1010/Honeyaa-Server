@@ -163,12 +163,11 @@ const getPotentialLover = async (req, res) => {
 
         const userPotentials = await userModel.potentialLover(id, sex_oriented);
         const userPotential = userPotentials[0];
-        console.log(userPotential);
 
         if (!userPotential) {
             return res.send({
                 statusCode: 403,
-                responseData: `user was not found!`,
+                responseData: {},
             });
         }
 
@@ -193,7 +192,10 @@ const getPotentialLover = async (req, res) => {
 
         if (userPotentialLover) {
             // console.log('userPotentialLover: ', userPotentialLover);
-            res.status(200).json(userPotentialLover);
+            res.send({
+                statusCode: 200,
+                responseData: userPotentialLover,
+            });
         }
     } catch (error) {
         res.status(500).json('!!!');
