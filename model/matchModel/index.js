@@ -38,8 +38,8 @@ const postInteract = (person_id, target_id, type, res) => {
 
     const createNewLikeDataRow = () => {
         db.query(
-            'INSERT INTO `like` (person_id, target_id, type_id, create_at, is_matched) VALUES (?, ?, ?, ?, ?)',
-            [person_id, target_id, type, currentDate, 0],
+            'INSERT INTO `like` ' +
+                `(person_id, target_id, type_id, create_at, is_matched, is_responsed) VALUES (${person_id}, ${target_id}, ${type}, '${currentDate}', 0, 0)`,
             (err, result) => {
                 if (err) {
                     res.send({
@@ -79,21 +79,42 @@ const postInteract = (person_id, target_id, type, res) => {
     };
 
     const updateMatched = () => {
-        db.query(
-            'UPDATE `like` ' + `SET is_matched=1 WHERE target_id=${person_id} AND person_id=${target_id}`,
-            (err, result) => {
-                if (err) {
-                    res.send({
-                        statusCode: 400,
-                        responseData: err.toString(),
-                    });
-                } else {
-                    if (result.affectedRows > 0) {
-                        createChatPlace();
+        const LIKE = 1;
+        const SUPER_LIKE = 3;
+        if (type === LIKE || type === SUPER_LIKE) {
+            db.query(
+                'UPDATE `like` ' +
+                    `SET is_matched = 1, is_responsed = 1 WHERE target_id=${person_id} AND person_id=${target_id}`,
+                (err, result) => {
+                    if (err) {
+                        res.send({
+                            statusCode: 400,
+                            responseData: err.toString(),
+                        });
+                    } else {
+                        if (result.affectedRows > 0) {
+                            createChatPlace();
+                        }
                     }
-                }
-            },
-        );
+                },
+            );
+        } else {
+            db.query(
+                'UPDATE `like` ' + `SET is_responsed = 1 WHERE target_id=${person_id} AND person_id=${target_id}`,
+                (err, result) => {
+                    if (err) {
+                        res.send({
+                            statusCode: 400,
+                            responseData: err.toString(),
+                        });
+                    } else {
+                        if (result.affectedRows > 0) {
+                            sendResponse();
+                        }
+                    }
+                },
+            );
+        }
     };
 
     const checkProfileLikedMe = () => {

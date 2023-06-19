@@ -642,7 +642,7 @@ const potentialLover = async (id, sex_oriented) => {
                     p.sex = ${sex_oriented} and
                     NOT EXISTS (
                         SELECT * FROM honeyaa.like l
-                        WHERE (l.target_id = p.id and l.person_id = ${id}) or (l.target_id = ${id} and l.person_id = p.id and l.is_matched = 1)
+                        WHERE (l.target_id = p.id and l.person_id = ${id}) or (l.target_id = ${id} and l.person_id = p.id and l.is_matched = 1) or (l.target_id = ${id} and l.person_id = p.id and l.is_matched = 0  and l.is_responsed = 1)
                     )`,
                 (err, result) => {
                     if (err) {
