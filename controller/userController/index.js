@@ -145,6 +145,15 @@ const handleRemoveImageFromProfile = (req, res) => {
 const handleGetTopLike = (req, res) => {
     userModel.getTopLike(req, res);
 };
+const handleGetSent = (req, res) => {
+    userModel.getSent(req, res);
+};
+const handleDeleteSent = (req, res) => {
+    userModel.deleteSent(req, res);
+};
+const handleGetXlike = (req, res) => {
+    userModel.getXlike(req, res);
+};
 const handleGetChat = (req, res) => {
     userModel.getChat(req, res);
 };
@@ -230,4 +239,8 @@ module.exports = {
     handlePostMessage,
     handleGetMatchChat,
     getPotentialLover,
+    handleGetSent,
+    handleGetXlike,
+    handleDeleteSent,
+    handleDeleteXlike
 };

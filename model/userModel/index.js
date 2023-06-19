@@ -38,7 +38,7 @@ const getUser = (token, device_id, res) => {
             } else {
                 const person_info = result;
                 new Promise((resolve, reject) => {
-                    db.query(`SELECT * FROM profile_img WHERE person_id=${person_info[0].id}`, (err, result) => {
+                    db.query(`SELECT * FROM profile_img WHERE person_id=${person_info[0]?.id}`, (err, result) => {
                         if (err) {
                             res.send({
                                 statusCode: 400,
@@ -565,12 +565,17 @@ const putProfile = (req, res) => {
     });
 };
 const getTopLike = (req, res) => {
-    const query = `select target_id,full_name, GROUP_CONCAT(DISTINCT image SEPARATOR ',') as image, count(target_id) as 'numOfLike'
-                    from Honeyaa.like l, person p, profile_img i
-                    where l.target_id = p.id and p.id = i.person_id
-                    group by target_id,full_name
-                    order by numOfLike desc
-                    LIMIT 10`;
+    const query = `SELECT p.id AS target_id,p.full_name,image,
+    COUNT(l.target_id) AS numOfLike
+    FROM Honeyaa.like l JOIN person p ON l.target_id = p.id
+    JOIN (SELECT MIN(pi.id) AS min_image_id,pi.person_id
+    FROM profile_img pi
+    GROUP BY pi.person_id
+    ) min_pi ON min_pi.person_id = p.id
+    JOIN profile_img pi ON pi.id = min_pi.min_image_id
+    GROUP BY target_id,full_name,image
+    ORDER BY numOfLike DESC
+    LIMIT 10;`;
     db.query(query, (err, result) => {
         if (err) {
             console.log(err);
@@ -578,6 +583,56 @@ const getTopLike = (req, res) => {
         res.send(result);
     });
 };
+
+const getSent = (req, res) => {
+    const {personId} = req.params;
+    const query = `SELECT l.id as likeId,p.id AS target_id,p.full_name,image, create_at
+    FROM Honeyaa.like l JOIN person p ON l.target_id = p.id
+    JOIN (SELECT MIN(pi.id) AS min_image_id,pi.person_id
+    FROM profile_img pi
+    GROUP BY pi.person_id
+    ) min_pi ON min_pi.person_id = p.id
+    JOIN profile_img pi ON pi.id = min_pi.min_image_id
+    where l.person_id=?
+    GROUP BY target_id,full_name,image, create_at, likeId
+    ORDER BY create_at desc;`;
+    db.query(query,[personId], (err, result) => {
+        if (err) {
+            console.log(err);
+        }
+        res.send(result);
+    });
+};
+const deleteSent = (req, res) => {
+    const {likeId} = req.params;
+    const query = `DELETE FROM Honeyaa.like WHERE id =?;`;
+    db.query(query,[likeId], (err, result) => {
+        if (err) {
+            console.log(err);
+        }
+        res.send(result);
+    });
+};
+const getXlike = (req, res) => {
+    const {personId} = req.params;
+    const query = `SELECT l.id as likeId,p.id AS person_id,p.full_name,image, create_at
+    FROM Honeyaa.like l JOIN person p ON l.person_id = p.id
+    JOIN (SELECT MIN(pi.id) AS min_image_id,pi.person_id
+    FROM profile_img pi
+    GROUP BY pi.person_id
+    ) min_pi ON min_pi.person_id = p.id
+    JOIN profile_img pi ON pi.id = min_pi.min_image_id
+    where l.target_id=? and l.is_matched = 0 and l.is_responsed = 0 
+    GROUP BY person_id,full_name,image, create_at,likeId
+    ORDER BY create_at desc;`;
+    db.query(query,[personId,personId], (err, result) => {
+        if (err) {
+            console.log(err);
+        }
+        res.send(result);
+    });
+};
+
 const getChat = (req, res) => {
     const { personId, targetId } = req.params;
     const query = `SELECT dc.id AS chat_id, dc.content, dc.sent_time ,dc.person_id AS sender_id, p.full_name AS sender_name
@@ -642,7 +697,7 @@ const potentialLover = async (id, sex_oriented) => {
                     p.sex = ${sex_oriented} and
                     NOT EXISTS (
                         SELECT * FROM honeyaa.like l
-                        WHERE (l.target_id = p.id and l.person_id = ${id}) or (l.target_id = ${id} and l.person_id = p.id and l.is_matched = 1)
+                        WHERE (l.target_id = p.id and l.person_id = ${id}) or (l.target_id = ${id} and l.person_id = p.id and l.is_matched = 1) or (l.target_id = ${id} and l.person_id = p.id and l.is_matched = 0  and l.is_responsed = 1)
                     )`,
                 (err, result) => {
                     if (err) {
@@ -658,6 +713,7 @@ const potentialLover = async (id, sex_oriented) => {
         console.log(error);
     }
 };
+
 
 const getImageByUserId = async (person_id) => {
     console.log(person_id);
@@ -725,9 +781,13 @@ const getRelationshipOrientedByUserId = async (userId) => {
 
 const getMatchChat = (req, res) => {
     const { personId } = req.params;
-    const query = `SELECT p.id as target_id, p.full_name, GROUP_CONCAT(DISTINCT pi.image SEPARATOR ',') AS image, c.id as chat_id, dt.content
+    const query = `SELECT p.id AS target_id, p.full_name, pi.image AS image, c.id AS chat_id, dt.content
     FROM person p
-    LEFT JOIN profile_img pi ON pi.person_id = p.id
+    JOIN (SELECT MIN(pi.id) AS min_image_id,pi.person_id
+    FROM profile_img pi
+    GROUP BY pi.person_id
+    ) min_pi ON min_pi.person_id = p.id
+    JOIN profile_img pi ON pi.id = min_pi.min_image_id
     RIGHT JOIN chat c ON c.person_id = p.id OR c.target_id = p.id
     LEFT JOIN (
     SELECT p.id, p.full_name, GROUP_CONCAT(DISTINCT pi.image SEPARATOR ',') AS image, c1.content, c1.id as chat_id
@@ -749,7 +809,7 @@ const getMatchChat = (req, res) => {
     GROUP BY p.id, p.full_name, c1.content, c1.id
     ) dt on dt.chat_id = c.id
     where p.id<>? and (c.person_id=? or c.target_id=?)
-    GROUP BY p.id, p.full_name, c.id,dt.content;`;
+    GROUP BY p.id, p.full_name, c.id,dt.content, pi.image;`;
     db.query(query, [personId, personId, personId], (err, result) => {
         if (err) {
             console.log(err);
@@ -788,4 +848,8 @@ module.exports = {
     getImageByUserId,
     getMyInterestByUserId,
     getRelationshipOrientedByUserId,
+    getSent,
+    getXlike,
+    deleteSent,
+    deleteXlike
 };
