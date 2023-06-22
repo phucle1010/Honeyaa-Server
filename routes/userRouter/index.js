@@ -21,6 +21,7 @@ router.get('/myInterest/:personId', userController.handleGetMyInterest);
 router.get('/relationship_oriented', userController.handleGetRelationshipOrientedList);
 router.put('/myBasic/:myBasicId', userController.handleUpdateMyBasic);
 router.put('/profile/:personId', userController.handlePutProfile);
+router.put('/setprofile/:personId', userController.handleSetProfile);
 router.post('/login', userController.handleLoginUser);
 router.get('/profile/img/all', userController.handleGetImageOfUser);
 router.get('/profile/img/reviews', userController.handleGetReviewImageOfUser);

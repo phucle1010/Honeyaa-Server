@@ -112,6 +112,9 @@ const handleGetRelationshipOrientedList = (req, res) => {
 const handlePutProfile = (req, res) => {
     userModel.putProfile(req, res);
 };
+const handleSetProfile = (req, res) => {
+    userModel.setProfile(req, res);
+};
 const handleGetImageOfUser = (req, res) => {
     const user_id = req.query.user_id;
     userModel.getImageOfUser(user_id, res);
@@ -229,6 +232,7 @@ module.exports = {
     handlePostMyInterest,
     handleGetRelationshipOrientedList,
     handlePutProfile,
+    handleSetProfile,
     handleGetImageOfUser,
     handleGetReviewImageOfUser,
     handleGetAvatarOfUser,
@@ -242,5 +246,5 @@ module.exports = {
     handleGetSent,
     handleGetXlike,
     handleDeleteSent,
-    handleDeleteXlike
+    //handleDeleteXlike
 };

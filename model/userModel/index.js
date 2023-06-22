@@ -462,7 +462,16 @@ const getProfile = (req, res) => {
         res.send(result);
     });
 };
-
+// const getProfileSetting = (req, res) => {
+//     const { personId } = req.params;
+//     const query = `select dob,  from person where id = ?`;
+//     db.query(query, [personId], (err, result) => {
+//         if (err) {
+//             console.log(err);
+//         }
+//         res.send(result);
+//     });
+// };
 const updateMyBasic = (req, res) => {
     const { myBasicId } = req.params;
     const { zodiac, education, language, socialNetwork, physicalExercise, pet, music } = req.body;
@@ -564,6 +573,20 @@ const putProfile = (req, res) => {
         }
     });
 };
+const setProfile = (req, res) => {
+    const { personId } = req.params;
+    const { age, distance, active_status } = req.body;
+    const query = 'UPDATE person SET age=?, distance=?, active_status=? WHERE id =?';
+    db.query(query, [age, distance, active_status, personId], (error, results) => {
+        if (error) {
+            res.status(500).json({ error });
+            console.log(error);
+        } else {
+            res.json({ message: 'profile update successfully' });
+            console.log(results);
+        }
+    });
+};
 const getTopLike = (req, res) => {
     const query = `SELECT p.id AS target_id,p.full_name,image,
     COUNT(l.target_id) AS numOfLike
@@ -585,7 +608,7 @@ const getTopLike = (req, res) => {
 };
 
 const getSent = (req, res) => {
-    const {personId} = req.params;
+    const { personId } = req.params;
     const query = `SELECT l.id as likeId,p.id AS target_id,p.full_name,image, create_at
     FROM Honeyaa.like l JOIN person p ON l.target_id = p.id
     JOIN (SELECT MIN(pi.id) AS min_image_id,pi.person_id
@@ -596,7 +619,7 @@ const getSent = (req, res) => {
     where l.person_id=?
     GROUP BY target_id,full_name,image, create_at, likeId
     ORDER BY create_at desc;`;
-    db.query(query,[personId], (err, result) => {
+    db.query(query, [personId], (err, result) => {
         if (err) {
             console.log(err);
         }
@@ -604,9 +627,9 @@ const getSent = (req, res) => {
     });
 };
 const deleteSent = (req, res) => {
-    const {likeId} = req.params;
+    const { likeId } = req.params;
     const query = `DELETE FROM Honeyaa.like WHERE id =?;`;
-    db.query(query,[likeId], (err, result) => {
+    db.query(query, [likeId], (err, result) => {
         if (err) {
             console.log(err);
         }
@@ -614,7 +637,7 @@ const deleteSent = (req, res) => {
     });
 };
 const getXlike = (req, res) => {
-    const {personId} = req.params;
+    const { personId } = req.params;
     const query = `SELECT l.id as likeId,p.id AS person_id,p.full_name,image, create_at
     FROM Honeyaa.like l JOIN person p ON l.person_id = p.id
     JOIN (SELECT MIN(pi.id) AS min_image_id,pi.person_id
@@ -625,7 +648,7 @@ const getXlike = (req, res) => {
     where l.target_id=? and l.is_matched = 0 and l.is_responsed = 0 
     GROUP BY person_id,full_name,image, create_at,likeId
     ORDER BY create_at desc;`;
-    db.query(query,[personId,personId], (err, result) => {
+    db.query(query, [personId, personId], (err, result) => {
         if (err) {
             console.log(err);
         }
@@ -713,7 +736,6 @@ const potentialLover = async (id, sex_oriented) => {
         console.log(error);
     }
 };
-
 
 const getImageByUserId = async (person_id) => {
     console.log(person_id);
@@ -838,6 +860,7 @@ module.exports = {
     postMyInterest,
     getRelationshipOrientedList,
     putProfile,
+    setProfile,
     updateMyBasic,
     getTopLike,
     getChat,
@@ -851,5 +874,5 @@ module.exports = {
     getSent,
     getXlike,
     deleteSent,
-    deleteXlike
+    //deleteXlike
 };
