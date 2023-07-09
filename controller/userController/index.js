@@ -109,6 +109,34 @@ const handlePostMyInterest = (req, res) => {
 const handleGetRelationshipOrientedList = (req, res) => {
     userModel.getRelationshipOrientedList(req, res);
 };
+const handleSetProfile = (req, res) => {
+    userModel.setProfile(req, res);
+};
+const handlePutPassword = async (req, res) => {
+    const { current, new_pass, re_new, phone } = req.body;
+    await userModel
+        .checkCurrentPassword(current, phone)
+        .then((result) => {
+            if (result.statusCode === 400) {
+                res.send(result);
+            } else {
+                if (new_pass !== re_new) {
+                    res.send({
+                        statusCode: 400,
+                        responseData: 'Current password and re-new ones are not the same. Please try again.',
+                    });
+                } else {
+                    userModel.putNewPassword(new_pass, phone, res);
+                }
+            }
+        })
+        .catch((err) => {
+            res.send({
+                statusCode: 400,
+                responseData: err.toString(),
+            });
+        });
+};
 const handlePutProfile = (req, res) => {
     userModel.putProfile(req, res);
 };
@@ -116,7 +144,6 @@ const handleGetImageOfUser = (req, res) => {
     const user_id = req.query.user_id;
     userModel.getImageOfUser(user_id, res);
 };
-
 const handleGetReviewImageOfUser = async (req, res) => {
     const result = await userModel.getImageByUserId(req.query.person_id);
     await res.send({
@@ -228,6 +255,8 @@ module.exports = {
     handleGetMyInterest,
     handlePostMyInterest,
     handleGetRelationshipOrientedList,
+    handleSetProfile,
+    handlePutPassword,
     handlePutProfile,
     handleGetImageOfUser,
     handleGetReviewImageOfUser,
@@ -242,5 +271,4 @@ module.exports = {
     handleGetSent,
     handleGetXlike,
     handleDeleteSent,
-    handleDeleteXlike
 };

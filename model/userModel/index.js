@@ -128,7 +128,7 @@ const postUser = (req, res) => {
         const date = new Date(Date.parse(birthday));
         const convertedDate = `${date.getUTCFullYear()}/${date.getUTCMonth() + 1}/${date.getDate()}`;
         db.query(
-            `INSERT INTO person (full_name, dob, phone, sex, sex_oriented, about_me, address) VALUES ('${name}', '${convertedDate}', '${phone}', ${gender}, ${obgender}, 'Trống', 'Trống')`,
+            `INSERT INTO person (full_name, dob, phone, sex, sex_oriented, about_me, address, age_oriented, distance, active_status) VALUES ('${name}', '${convertedDate}', '${phone}', ${gender}, ${obgender}, 'Trống', 'Trống', 0, 0, 1)`,
             (err, result) => {
                 if (err) {
                     res.status(500).json(err.toString());
@@ -548,6 +548,65 @@ const getRelationshipOrientedList = (req, res) => {
         res.send(result);
     });
 };
+const setProfile = (req, res) => {
+    const { personId } = req.params;
+    const { age_oriented, distance, active_status } = req.body;
+    const query = 'UPDATE person SET age_oriented=?, distance=?, active_status=? WHERE id =?';
+    db.query(query, [age_oriented, distance, active_status, personId], (error, results) => {
+        if (error) {
+            res.status(500).json({ error });
+            console.log(error);
+        } else {
+            res.json({ message: 'profile update successfully' });
+            console.log(results);
+        }
+    });
+};
+
+const checkCurrentPassword = (pass, phone) => {
+    const hashedPass = hashPass(pass);
+    try {
+        return new Promise((resolve, reject) => {
+            db.query(`SELECT * FROM user WHERE pass='${hashedPass}' AND phone='${phone}'`, (err, result) => {
+                if (err) {
+                    reject(err);
+                } else {
+                    if (result.length === 0) {
+                        resolve({
+                            statusCode: 400,
+                            responseData: 'Current password is incorrect',
+                        });
+                    } else {
+                        resolve({
+                            statusCode: 200,
+                            responseData: 'Current password is correct',
+                        });
+                    }
+                }
+            });
+        });
+    } catch (err) {
+        console.log(err);
+    }
+};
+
+const putNewPassword = (new_pass, phone, res) => {
+    db.query(`UPDATE user SET pass='${hashPass(new_pass)}' WHERE phone='${phone}'`, (err, result) => {
+        if (err) {
+            res.send({
+                statusCode: 400,
+                responseData: err.toString(),
+            });
+        } else {
+            if (result.affectedRows > 0) {
+                res.send({
+                    statusCode: 200,
+                    responseData: 'Update new password successfully',
+                });
+            }
+        }
+    });
+};
 
 const putProfile = (req, res) => {
     const { personId } = req.params;
@@ -564,6 +623,7 @@ const putProfile = (req, res) => {
         }
     });
 };
+
 const getTopLike = (req, res) => {
     const query = `SELECT p.id AS target_id,p.full_name,image,
     COUNT(l.target_id) AS numOfLike
@@ -585,10 +645,10 @@ const getTopLike = (req, res) => {
 };
 
 const getSent = (req, res) => {
-    const {personId} = req.params;
-    const query = `SELECT l.id as likeId,p.id AS target_id,p.full_name,image, create_at
+    const { personId } = req.params;
+    const query = `SELECT l.id as likeId, p.id AS target_id, p.full_name, image, create_at, l.is_responsed
     FROM Honeyaa.like l JOIN person p ON l.target_id = p.id
-    JOIN (SELECT MIN(pi.id) AS min_image_id,pi.person_id
+    JOIN (SELECT MIN(pi.id) AS min_image_id, pi.person_id
     FROM profile_img pi
     GROUP BY pi.person_id
     ) min_pi ON min_pi.person_id = p.id
@@ -596,7 +656,7 @@ const getSent = (req, res) => {
     where l.person_id=?
     GROUP BY target_id,full_name,image, create_at, likeId
     ORDER BY create_at desc;`;
-    db.query(query,[personId], (err, result) => {
+    db.query(query, [personId], (err, result) => {
         if (err) {
             console.log(err);
         }
@@ -604,9 +664,9 @@ const getSent = (req, res) => {
     });
 };
 const deleteSent = (req, res) => {
-    const {likeId} = req.params;
+    const { likeId } = req.params;
     const query = `DELETE FROM Honeyaa.like WHERE id =?;`;
-    db.query(query,[likeId], (err, result) => {
+    db.query(query, [likeId], (err, result) => {
         if (err) {
             console.log(err);
         }
@@ -614,7 +674,7 @@ const deleteSent = (req, res) => {
     });
 };
 const getXlike = (req, res) => {
-    const {personId} = req.params;
+    const { personId } = req.params;
     const query = `SELECT l.id as likeId,p.id AS person_id,p.full_name,image, create_at
     FROM Honeyaa.like l JOIN person p ON l.person_id = p.id
     JOIN (SELECT MIN(pi.id) AS min_image_id,pi.person_id
@@ -625,7 +685,7 @@ const getXlike = (req, res) => {
     where l.target_id=? and l.is_matched = 0 and l.is_responsed = 0 
     GROUP BY person_id,full_name,image, create_at,likeId
     ORDER BY create_at desc;`;
-    db.query(query,[personId,personId], (err, result) => {
+    db.query(query, [personId, personId], (err, result) => {
         if (err) {
             console.log(err);
         }
@@ -713,7 +773,6 @@ const potentialLover = async (id, sex_oriented) => {
         console.log(error);
     }
 };
-
 
 const getImageByUserId = async (person_id) => {
     console.log(person_id);
@@ -837,6 +896,9 @@ module.exports = {
     getMyInterest,
     postMyInterest,
     getRelationshipOrientedList,
+    setProfile,
+    checkCurrentPassword,
+    putNewPassword,
     putProfile,
     updateMyBasic,
     getTopLike,
@@ -851,5 +913,5 @@ module.exports = {
     getSent,
     getXlike,
     deleteSent,
-    deleteXlike
+    // deleteXlike
 };
