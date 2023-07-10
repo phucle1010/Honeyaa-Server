@@ -95,18 +95,29 @@ const postUser = (req, res) => {
     const { phone, pass, name, birthday, photo, photo1, gender, obgender, interests } = req.body;
     const password = hashPass(pass.toString());
 
+    const insertMyBasics = (person_id) => {
+        db.query(`INSERT INTO my_basics (person_id) VALUES (${person_id})`, (err, result) => {
+            if (err) {
+                res.status(403).json('Failed to insert your basics data');
+            } else {
+                res.status(200).json('Sign Up Successfully');
+            }
+        });
+    };
+
     const insertInterests = (person_id) => {
         interests.forEach((interestId) => {
             const sql = `INSERT INTO my_interest (person_id, interest_id) VALUES (${person_id}, ${interestId})`;
             db.query(sql, (err, result) => {
                 if (err) {
+                    res.status(403).json('Failed to insert your interests data');
                     console.error('Error saving interest:', err);
                 } else {
                     console.log('Interest saved successfully!');
                 }
             });
         });
-        res.status(200).json('Sign Up Successfully');
+        insertMyBasics();
     };
 
     const insertImageData = (person_id) => {
@@ -128,7 +139,7 @@ const postUser = (req, res) => {
         const date = new Date(Date.parse(birthday));
         const convertedDate = `${date.getUTCFullYear()}/${date.getUTCMonth() + 1}/${date.getDate()}`;
         db.query(
-            `INSERT INTO person (full_name, dob, phone, sex, sex_oriented, about_me, address, age_oriented, distance, active_status) VALUES ('${name}', '${convertedDate}', '${phone}', ${gender}, ${obgender}, 'Trống', 'Trống', 0, 0, 1)`,
+            `INSERT INTO person (full_name, dob, phone, sex, sex_oriented, relationship_oriented_id, about_me, address, age_oriented, distance, active_status) VALUES ('${name}', '${convertedDate}', '${phone}', ${gender}, ${obgender}, 1, 'Trống', 'Trống', 0, 0, 1)`,
             (err, result) => {
                 if (err) {
                     res.status(500).json(err.toString());
@@ -458,8 +469,10 @@ const getProfile = (req, res) => {
     db.query(query, [personId], (err, result) => {
         if (err) {
             console.log(err);
+        } else {
+            console.log('result: ', result);
+            res.send(result);
         }
-        res.send(result);
     });
 };
 
@@ -618,7 +631,7 @@ const putProfile = (req, res) => {
             res.status(500).json({ error });
             console.log(error);
         } else {
-            res.json({ message: 'profile update successfully' });
+            res.json({ message: 'Update profile successfully' });
             console.log(results);
         }
     });
