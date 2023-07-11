@@ -1,5 +1,6 @@
 const userModel = require('../../model/userModel');
 const nodemailer = require('nodemailer');
+const nodeGeocoder = require('node-geocoder');
 
 const handleGetUserData = (req, res) => {
     const token = req.query.token;
@@ -109,6 +110,34 @@ const handlePostMyInterest = (req, res) => {
 const handleGetRelationshipOrientedList = (req, res) => {
     userModel.getRelationshipOrientedList(req, res);
 };
+const handleSetProfile = (req, res) => {
+    userModel.setProfile(req, res);
+};
+const handlePutPassword = async (req, res) => {
+    const { current, new_pass, re_new, phone } = req.body;
+    await userModel
+        .checkCurrentPassword(current, phone)
+        .then((result) => {
+            if (result.statusCode === 400) {
+                res.send(result);
+            } else {
+                if (new_pass !== re_new) {
+                    res.send({
+                        statusCode: 400,
+                        responseData: 'Current password and re-new ones are not the same. Please try again.',
+                    });
+                } else {
+                    userModel.putNewPassword(new_pass, phone, res);
+                }
+            }
+        })
+        .catch((err) => {
+            res.send({
+                statusCode: 400,
+                responseData: err.toString(),
+            });
+        });
+};
 const handlePutProfile = (req, res) => {
     userModel.putProfile(req, res);
 };
@@ -116,7 +145,6 @@ const handleGetImageOfUser = (req, res) => {
     const user_id = req.query.user_id;
     userModel.getImageOfUser(user_id, res);
 };
-
 const handleGetReviewImageOfUser = async (req, res) => {
     const result = await userModel.getImageByUserId(req.query.person_id);
     await res.send({
@@ -226,11 +254,64 @@ const saveAnswers = async (req, res) => {
 }
 
 const getPotentialLover = async (req, res) => {
+    const options = {
+        provider: 'openstreetmap',
+    };
+
+    const geoCoder = nodeGeocoder(options);
+
+    function getDistanceFromLatLonInKm(lat1, lon1, lat2, lon2) {
+        var R = 6371;
+        var dLat = deg2rad(lat2 - lat1);
+        var dLon = deg2rad(lon2 - lon1);
+        var a =
+            Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+        var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        var d = R * c;
+        return d;
+    }
+
+    function deg2rad(deg) {
+        return deg * (Math.PI / 180);
+    }
+
+    const calcCoordinates = async (firstLocation, secondLocation) => {
+        return await new Promise((resolve, reject) => {
+            geoCoder
+                .geocode(firstLocation)
+                .then((res) => {
+                    const currentLocationOfUser = {
+                        latitude: null,
+                        longitude: null,
+                    };
+                    currentLocationOfUser.latitude = res[0].latitude;
+                    currentLocationOfUser.longitude = res[0].longitude;
+                    geoCoder
+                        .geocode(secondLocation)
+                        .then((res) => {
+                            const realDistance = getDistanceFromLatLonInKm(
+                                currentLocationOfUser.latitude,
+                                currentLocationOfUser.longitude,
+                                res[0].latitude,
+                                res[0].longitude,
+                            );
+                            resolve(Math.round(realDistance));
+                        })
+                        .catch((err) => reject(err));
+                })
+                .catch((err) => reject(err));
+        });
+    };
+
     try {
         const id = req.query.id;
         const sex_oriented = req.query.sex_oriented;
+        const age_oriented = req.query.age_oriented;
+        const distance = req.query.distance;
+        const current_address = req.query.current_address;
 
-        const userPotentials = await userModel.potentialLover(id, sex_oriented);
+        const userPotentials = await userModel.potentialLover(id, sex_oriented, age_oriented);
         const userPotential = userPotentials[0];
 
         if (!userPotential) {
@@ -240,9 +321,18 @@ const getPotentialLover = async (req, res) => {
             });
         }
 
-        const images = await userModel.getImageByUserId(userPotential.id);
+        const realDistance = await calcCoordinates(current_address, userPotential.address);
 
+        if (realDistance > distance) {
+            return res.send({
+                statusCode: 200,
+                responseData: [],
+            });
+        }
+
+        const images = await userModel.getImageByUserId(userPotential.id);
         const interests = await userModel.getMyInterestByUserId(userPotential.id);
+        const basics = await userModel.getBasicsByUserId(userPotential.id);
         const approachObject = await userModel.getRelationshipOrientedByUserId(userPotential.id);
 
         let userPotentialLover = {
@@ -250,13 +340,16 @@ const getPotentialLover = async (req, res) => {
             name: userPotential.full_name,
             dob: userPotential.dob,
             status: 'Đang hoạt động',
+            about_me: userPotential.about_me,
             distance: 1,
             gender: userPotential.sex ? userPotential.sex : null,
             img: images,
             hobbies: interests,
+            basics: basics,
             introduction: userPotential.about_me,
             socialContact: null,
             approachObject: approachObject,
+            realDistance: realDistance,
         };
 
         if (userPotentialLover) {
@@ -288,6 +381,8 @@ module.exports = {
     handleGetMyInterest,
     handlePostMyInterest,
     handleGetRelationshipOrientedList,
+    handleSetProfile,
+    handlePutPassword,
     handlePutProfile,
     handleGetImageOfUser,
     handleGetReviewImageOfUser,
@@ -304,5 +399,4 @@ module.exports = {
     getQuestionsAnswers,
     saveAnswers,
     handleDeleteSent,
-    // handleDeleteXlike
 };
