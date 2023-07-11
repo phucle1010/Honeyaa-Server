@@ -271,8 +271,8 @@ const getPotentialLover = async (req, res) => {
         }
 
         const images = await userModel.getImageByUserId(userPotential.id);
-
         const interests = await userModel.getMyInterestByUserId(userPotential.id);
+        const basics = await userModel.getBasicsByUserId(userPotential.id);
         const approachObject = await userModel.getRelationshipOrientedByUserId(userPotential.id);
 
         let userPotentialLover = {
@@ -280,10 +280,12 @@ const getPotentialLover = async (req, res) => {
             name: userPotential.full_name,
             dob: userPotential.dob,
             status: 'Đang hoạt động',
+            about_me: userPotential.about_me,
             distance: 1,
             gender: userPotential.sex ? userPotential.sex : null,
             img: images,
             hobbies: interests,
+            basics: basics,
             introduction: userPotential.about_me,
             socialContact: null,
             approachObject: approachObject,

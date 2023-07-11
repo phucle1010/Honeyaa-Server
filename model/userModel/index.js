@@ -842,6 +842,20 @@ const getMyInterestByUserId = async (userId) => {
     }
 };
 
+const getBasicsByUserId = async (userId) => {
+    try {
+        return new Promise((resolve, reject) => {
+            db.query(`SELECT * FROM my_basics WHERE person_id=${userId}`, (err, result) => {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve(result);
+                }
+            });
+        });
+    } catch (err) {}
+};
+
 const getRelationshipOrientedByUserId = async (userId) => {
     try {
         return new Promise((resolve, reject) => {
@@ -937,6 +951,7 @@ module.exports = {
     potentialLover,
     getImageByUserId,
     getMyInterestByUserId,
+    getBasicsByUserId,
     getRelationshipOrientedByUserId,
     getSent,
     getXlike,
