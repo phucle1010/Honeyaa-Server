@@ -32,6 +32,10 @@ router.get('/potential_love', userController.getPotentialLover);
 router.get('/chat/:personId/:targetId', userController.handleGetChat);
 router.get('/matchchat/:personId', userController.handleGetMatchChat);
 router.post('/message/post', userController.handlePostMessage);
+
+// discovery
+router.get('/questions-answers', userController.getQuestionsAnswers);
+
 router.get('/', userController.handleGetUserDataList);
 
 module.exports = router;

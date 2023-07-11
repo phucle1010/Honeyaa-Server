@@ -779,6 +779,50 @@ const getRelationshipOrientedByUserId = async (userId) => {
     }
 };
 
+const getQuestions = async (id) => {
+    try {
+        const query = `
+            SELECT * FROM question_content q
+            WHERE q.topic_id = ${id} 
+        `;
+        return new Promise((resolve, reject) => {
+            db.query(query, (err, result) => {
+                if (err) {
+                    console.log(err);
+                    reject(err);
+                } else {
+                    resolve(result);
+                }
+            });
+        });
+
+    } catch (e) {
+        throw e;
+    }
+}
+
+const getAnswers = async (ids) => {
+    try {
+        const query = `
+            SELECT * FROM question_answer a
+            WHERE a.question_id IN (${ids}); 
+        `;
+        return new Promise((resolve, reject) => {
+            db.query(query, (err, result) => {
+                if (err) {
+                    console.log(err);
+                    reject(err);
+                } else {
+                    resolve(result);
+                }
+            });
+        });
+
+    } catch (e) {
+        throw e;
+    }
+}
+
 const getMatchChat = (req, res) => {
     const { personId } = req.params;
     const query = `SELECT p.id AS target_id, p.full_name, pi.image AS image, c.id AS chat_id, dt.content
@@ -850,6 +894,8 @@ module.exports = {
     getRelationshipOrientedByUserId,
     getSent,
     getXlike,
+    getQuestions,
     deleteSent,
-    deleteXlike
+    getAnswers,
+    // deleteXlike
 };

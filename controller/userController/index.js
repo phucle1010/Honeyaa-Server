@@ -165,6 +165,41 @@ const handleGetMatchChat = (req, res) => {
     userModel.getMatchChat(req, res);
 };
 
+const getQuestionsAnswers = async (req, res) => {
+    try {
+        const id = req.query.id;
+        if (!id) return res.status(403).json('id was loss');
+
+        const questions = await userModel.getQuestions(id);
+        const questionId = questions.map((q) => q.id);
+
+        const answers = await userModel.getAnswers(questionId);
+        
+        const result = questions.map(q => {
+            const question = {
+                id: q.id,
+                content: q.content,
+                topic_id: q.topic_id,
+                answers: []
+            };
+            answers.forEach(a => {
+                if (a.question_id === q.id) {
+                    question.answers.push({
+                        id: a.id,
+                        content: a.content
+                    });
+                }
+            });
+            return question;
+        });
+
+        return res.status(200).json(result);
+    } catch (e) {
+        console.log(e);
+        res.status(500).json('!!!');
+    }
+}
+
 const getPotentialLover = async (req, res) => {
     try {
         const id = req.query.id;
@@ -241,6 +276,7 @@ module.exports = {
     getPotentialLover,
     handleGetSent,
     handleGetXlike,
+    getQuestionsAnswers,
     handleDeleteSent,
-    handleDeleteXlike
+    // handleDeleteXlike
 };
