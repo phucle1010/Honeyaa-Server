@@ -1,5 +1,6 @@
 const userModel = require('../../model/userModel');
 const nodemailer = require('nodemailer');
+const nodeGeocoder = require('node-geocoder');
 
 const handleGetUserData = (req, res) => {
     const token = req.query.token;
@@ -193,17 +194,79 @@ const handleGetMatchChat = (req, res) => {
 };
 
 const getPotentialLover = async (req, res) => {
+    const options = {
+        provider: 'openstreetmap',
+    };
+
+    const geoCoder = nodeGeocoder(options);
+
+    function getDistanceFromLatLonInKm(lat1, lon1, lat2, lon2) {
+        var R = 6371;
+        var dLat = deg2rad(lat2 - lat1);
+        var dLon = deg2rad(lon2 - lon1);
+        var a =
+            Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+        var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        var d = R * c;
+        return d;
+    }
+
+    function deg2rad(deg) {
+        return deg * (Math.PI / 180);
+    }
+
+    const calcCoordinates = async (firstLocation, secondLocation) => {
+        return await new Promise((resolve, reject) => {
+            geoCoder
+                .geocode(firstLocation)
+                .then((res) => {
+                    const currentLocationOfUser = {
+                        latitude: null,
+                        longitude: null,
+                    };
+                    currentLocationOfUser.latitude = res[0].latitude;
+                    currentLocationOfUser.longitude = res[0].longitude;
+                    geoCoder
+                        .geocode(secondLocation)
+                        .then((res) => {
+                            const realDistance = getDistanceFromLatLonInKm(
+                                currentLocationOfUser.latitude,
+                                currentLocationOfUser.longitude,
+                                res[0].latitude,
+                                res[0].longitude,
+                            );
+                            resolve(Math.round(realDistance));
+                        })
+                        .catch((err) => reject(err));
+                })
+                .catch((err) => reject(err));
+        });
+    };
+
     try {
         const id = req.query.id;
         const sex_oriented = req.query.sex_oriented;
+        const age_oriented = req.query.age_oriented;
+        const distance = req.query.distance;
+        const current_address = req.query.current_address;
 
-        const userPotentials = await userModel.potentialLover(id, sex_oriented);
+        const userPotentials = await userModel.potentialLover(id, sex_oriented, age_oriented);
         const userPotential = userPotentials[0];
 
         if (!userPotential) {
             return res.send({
                 statusCode: 403,
                 responseData: {},
+            });
+        }
+
+        const realDistance = await calcCoordinates(current_address, userPotential.address);
+
+        if (realDistance > distance) {
+            return res.send({
+                statusCode: 200,
+                responseData: [],
             });
         }
 
@@ -224,6 +287,7 @@ const getPotentialLover = async (req, res) => {
             introduction: userPotential.about_me,
             socialContact: null,
             approachObject: approachObject,
+            realDistance: realDistance,
         };
 
         if (userPotentialLover) {

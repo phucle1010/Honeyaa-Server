@@ -3,6 +3,7 @@ const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
 const { resolve } = require('path');
 const { send } = require('process');
+const nodeGeocoder = require('node-geocoder');
 var client = require('twilio')(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_TOKEN);
 
 function hashPass(pass) {
@@ -470,7 +471,6 @@ const getProfile = (req, res) => {
         if (err) {
             console.log(err);
         } else {
-            console.log('result: ', result);
             res.send(result);
         }
     });
@@ -758,26 +758,42 @@ const getUserInfoByToken = (token) => {
     }
 };
 
-const potentialLover = async (id, sex_oriented) => {
+const potentialLover = async (id, sex_oriented, age_oriented) => {
+    const currentYearsOld = (date) => {
+        const currentDate = new Date();
+        const dob = new Date(Date.parse(date));
+        const yearsOld = Number.parseInt(currentDate.getUTCFullYear()) - Number.parseInt(dob.getUTCFullYear());
+        const currentMonth = currentDate.getMonth();
+        const monthInDOB = dob.getMonth();
+        if (currentMonth < monthInDOB) {
+            return yearsOld - 1;
+        }
+        return yearsOld;
+    };
+
     try {
         return new Promise((resolve, reject) => {
             db.query(
                 `
-                SELECT p.id, p.full_name, p.dob, p.phone, p.sex, p.sex_oriented, p.relationship_oriented_id, p.about_me 
-                FROM person p
-                WHERE
-                    p.id != ${id} and
-                    p.sex = ${sex_oriented} and
-                    NOT EXISTS (
-                        SELECT * FROM honeyaa.like l
-                        WHERE (l.target_id = p.id and l.person_id = ${id}) or (l.target_id = ${id} and l.person_id = p.id and l.is_matched = 1) or (l.target_id = ${id} and l.person_id = p.id and l.is_matched = 0  and l.is_responsed = 1)
-                    )`,
+        SELECT p.id, p.full_name, p.dob, p.phone, p.sex, p.sex_oriented, p.relationship_oriented_id, p.about_me, p.address 
+        FROM person p
+        WHERE
+            p.id != ${id} AND
+            p.sex = ${sex_oriented} AND
+            p.active_status = 1 AND
+            NOT EXISTS (
+                SELECT * FROM honeyaa.like l
+                WHERE (l.target_id = p.id AND l.person_id = ${id}) 
+                OR (l.target_id = ${id} AND l.person_id = p.id AND l.is_matched = 1) 
+                OR (l.target_id = ${id} AND l.person_id = p.id AND l.is_matched = 0  AND l.is_responsed = 1)
+        )`,
                 (err, result) => {
                     if (err) {
                         console.log(err);
                         reject(err);
                     } else {
-                        resolve(result);
+                        const finalResult = result.filter(async (item) => currentYearsOld(item.dob) <= age_oriented);
+                        resolve(finalResult);
                     }
                 },
             );
@@ -788,7 +804,6 @@ const potentialLover = async (id, sex_oriented) => {
 };
 
 const getImageByUserId = async (person_id) => {
-    console.log(person_id);
     try {
         const result = await new Promise((resolve, reject) => {
             db.query(`SELECT * FROM profile_img WHERE person_id=${person_id}`, (err, result) => {
