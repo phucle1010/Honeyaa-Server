@@ -10,6 +10,28 @@ function hashPass(pass) {
     return hash.update(pass).digest('hex');
 }
 
+const getPersonId = async (token) => {
+    try {
+        const query = `
+            SELECT p.id FROM user u, person p WHERE u.token = ${token} and u.phone = p.phone; 
+        `;
+        return new Promise((resolve, reject) => {
+            db.query(query, (err, result) => {
+                if (err) {
+                    console.log(err);
+                    reject(err);
+                } else {
+                    console.log(result);
+                    resolve(result[0]?.id);
+                }
+            });
+        });
+
+    } catch (e) {
+        throw e;
+    }
+}
+
 const getUserList = (req, res) => {
     const sql = 'SELECT phone FROM user';
     db.query(sql, (err, result) => {
@@ -823,6 +845,53 @@ const getAnswers = async (ids) => {
     }
 }
 
+const saveAnswers = async (answers, personId) => {
+    try {
+        const query = `
+            INSERT INTO person_answer (answer_id, person_id) VALUES ?
+        `;
+
+        const values = answers.filter(answer => answer !== null).map(answer => [answer, personId]);
+
+        return new Promise((resolve, reject) => {
+            db.query(query, [values], (err, result) => {
+                if (err) {
+                    console.log(err);
+                    reject(err);
+                } else {
+                    resolve(result);
+                }
+            });
+        });
+
+    } catch (e) {
+        throw e;
+    }
+}
+
+const checkTopicAnswers = async (personId, topicId) => {
+    try {
+        const query = `
+            SELECT * FROM person_answer pa, question_answer qa, question_content q 
+            WHERE pa.person_id = ${personId} and pa.answer_id = qa.id and qa.question_id = q.id and q.topic_id = ${topicId};
+        `;
+
+        return new Promise((resolve, reject) => {
+            db.query(query, (err, result) => {
+                if (err) {
+                    console.log(err);
+                    reject(err);
+                } else {
+                    resolve(result?.[0]);
+                }
+            });
+        });
+
+    } catch (e) {
+        throw e;
+    }
+}
+
 const getMatchChat = (req, res) => {
     const { personId } = req.params;
     const query = `SELECT p.id AS target_id, p.full_name, pi.image AS image, c.id AS chat_id, dt.content
@@ -897,5 +966,8 @@ module.exports = {
     getQuestions,
     deleteSent,
     getAnswers,
+    getPersonId,
+    saveAnswers,
+    checkTopicAnswers,
     // deleteXlike
 };

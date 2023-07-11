@@ -167,14 +167,23 @@ const handleGetMatchChat = (req, res) => {
 
 const getQuestionsAnswers = async (req, res) => {
     try {
+        // id of topic
         const id = req.query.id;
+        const personId = await userModel.getPersonId(req.headers.authentication);
+        if (!personId) return res.status(401).json('please signin');
+
         if (!id) return res.status(403).json('id was loss');
+        console.log(personId, id);
+        
+        const isAnswered = await userModel.checkTopicAnswers(personId, id);
+        console.log(isAnswered);
+        if (isAnswered) return res.status(200).json([]);
 
         const questions = await userModel.getQuestions(id);
         const questionId = questions.map((q) => q.id);
 
         const answers = await userModel.getAnswers(questionId);
-        
+
         const result = questions.map(q => {
             const question = {
                 id: q.id,
@@ -194,6 +203,22 @@ const getQuestionsAnswers = async (req, res) => {
         });
 
         return res.status(200).json(result);
+    } catch (e) {
+        console.log(e);
+        res.status(500).json('!!!');
+    }
+}
+
+const saveAnswers = async (req, res) => {
+    try {
+        const id = await userModel.getPersonId(req.headers.authentication);
+        console.log(req.headers.authentication);
+        if (!id) return res.status(401).json('please signin');
+
+        const answers = req.body.answers;
+        console.log(req.body);
+        await userModel.saveAnswers(answers, id);
+        return res.status(200).json();
     } catch (e) {
         console.log(e);
         res.status(500).json('!!!');
@@ -277,6 +302,7 @@ module.exports = {
     handleGetSent,
     handleGetXlike,
     getQuestionsAnswers,
+    saveAnswers,
     handleDeleteSent,
     // handleDeleteXlike
 };

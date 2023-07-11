@@ -35,6 +35,7 @@ router.post('/message/post', userController.handlePostMessage);
 
 // discovery
 router.get('/questions-answers', userController.getQuestionsAnswers);
+router.post('/questions-answers/answers', userController.saveAnswers);
 
 router.get('/', userController.handleGetUserDataList);
 
