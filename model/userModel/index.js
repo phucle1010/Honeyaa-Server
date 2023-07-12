@@ -802,7 +802,7 @@ const potentialLover = async (id, sex_oriented, age_oriented) => {
         WHERE
             p.id != ${id} AND
             p.sex = ${sex_oriented} AND
-            p.active_status = 1 AND
+            -- p.active_status = 1 AND
             NOT EXISTS (
                 SELECT * FROM honeyaa.like l
                 WHERE (l.target_id = p.id AND l.person_id = ${id}) 
@@ -970,6 +970,58 @@ const saveAnswers = async (answers, personId) => {
     }
 }
 
+const getUserDiscover = async (id, sex_oriented, age_oriented) => {
+    const currentYearsOld = (date) => {
+        const currentDate = new Date();
+        const dob = new Date(Date.parse(date));
+        const yearsOld = Number.parseInt(currentDate.getUTCFullYear()) - Number.parseInt(dob.getUTCFullYear());
+        const currentMonth = currentDate.getMonth();
+        const monthInDOB = dob.getMonth();
+        if (currentMonth < monthInDOB) {
+            return yearsOld - 1;
+        }
+        return yearsOld;
+    };
+
+    try {
+        return new Promise((resolve, reject) => {
+            db.query(`
+                SELECT p.id, p.full_name, p.dob, p.phone, p.sex, p.sex_oriented, p.relationship_oriented_id, p.about_me, p.address ,
+                    COUNT(DISTINCT pa.answer_id) AS matching_answers
+                FROM person p
+                JOIN person_answer pa ON p.id = pa.person_id
+                WHERE
+                    p.id != ${id} AND
+                    p.sex = ${sex_oriented} AND
+                    -- p.active_status = 1 AND
+                    NOT EXISTS (
+                        SELECT * FROM honeyaa.like l
+                        WHERE (l.target_id = p.id AND l.person_id = ${id}) 
+                            OR (l.target_id = ${id} AND l.person_id = p.id AND l.is_matched = 1) 
+                            OR (l.target_id = ${id} AND l.person_id = p.id AND l.is_matched = 0  AND l.is_responsed = 1)
+                    )
+                    AND pa.answer_id IN (
+                        SELECT answer_id FROM person_answer WHERE person_id = ${id}
+                    )
+                GROUP BY p.id
+                ORDER BY matching_answers DESC;
+            `, (err, result) => {
+                    if (err) {
+                        console.log(err);
+                        reject(err);
+                    } else {
+                        console.log(result);
+                        const finalResult = result.filter(async (item) => currentYearsOld(item.dob) <= age_oriented);
+                        resolve(finalResult);
+                    }
+                },
+            );
+        });
+    } catch (error) {
+        console.log(error);
+    }
+}
+
 const checkTopicAnswers = async (personId, topicId) => {
     try {
         const query = `
@@ -1073,5 +1125,6 @@ module.exports = {
     getAnswers,
     getPersonId,
     saveAnswers,
+    getUserDiscover,
     checkTopicAnswers,
 };
