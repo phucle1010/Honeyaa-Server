@@ -193,6 +193,66 @@ const handleGetMatchChat = (req, res) => {
     userModel.getMatchChat(req, res);
 };
 
+const getQuestionsAnswers = async (req, res) => {
+    try {
+        // id of topic
+        const id = req.query.id;
+        const personId = await userModel.getPersonId(req.headers.authentication);
+        if (!personId) return res.status(401).json('please signin');
+
+        if (!id) return res.status(403).json('id was loss');
+        console.log(personId, id);
+
+        const isAnswered = await userModel.checkTopicAnswers(personId, id);
+        console.log(isAnswered);
+        if (isAnswered) return res.status(200).json([]);
+
+        const questions = await userModel.getQuestions(id);
+        const questionId = questions.map((q) => q.id);
+
+        const answers = await userModel.getAnswers(questionId);
+
+        const result = questions.map((q) => {
+            const question = {
+                id: q.id,
+                content: q.content,
+                topic_id: q.topic_id,
+                answers: [],
+            };
+            answers.forEach((a) => {
+                if (a.question_id === q.id) {
+                    question.answers.push({
+                        id: a.id,
+                        content: a.content,
+                    });
+                }
+            });
+            return question;
+        });
+
+        return res.status(200).json(result);
+    } catch (e) {
+        console.log(e);
+        res.status(500).json('!!!');
+    }
+};
+
+const saveAnswers = async (req, res) => {
+    try {
+        const id = await userModel.getPersonId(req.headers.authentication);
+        console.log(req.headers.authentication);
+        if (!id) return res.status(401).json('please signin');
+
+        const answers = req.body.answers;
+        console.log(req.body);
+        await userModel.saveAnswers(answers, id);
+        return res.status(200).json();
+    } catch (e) {
+        console.log(e);
+        res.status(500).json('!!!');
+    }
+};
+
 const getPotentialLover = async (req, res) => {
     // Tính khoảng cách giữa hai profile
     const options = {
@@ -226,16 +286,16 @@ const getPotentialLover = async (req, res) => {
                         latitude: null,
                         longitude: null,
                     };
-                    currentLocationOfUser.latitude = res[0].latitude;
-                    currentLocationOfUser.longitude = res[0].longitude;
+                    currentLocationOfUser.latitude = res[0]?.latitude;
+                    currentLocationOfUser.longitude = res[0]?.longitude;
                     geoCoder
                         .geocode(secondLocation)
                         .then((res) => {
                             const realDistance = getDistanceFromLatLonInKm(
                                 currentLocationOfUser.latitude,
                                 currentLocationOfUser.longitude,
-                                res[0].latitude,
-                                res[0].longitude,
+                                res[0]?.latitude,
+                                res[0]?.longitude,
                             );
                             resolve(Math.round(realDistance));
                         })
@@ -301,6 +361,121 @@ const getPotentialLover = async (req, res) => {
             });
         }
     } catch (error) {
+        console.log(error);
+        res.status(500).json('!!!');
+    }
+};
+
+const getUserDiscover = async (req, res) => {
+    const options = {
+        provider: 'openstreetmap',
+    };
+
+    const geoCoder = nodeGeocoder(options);
+
+    function getDistanceFromLatLonInKm(lat1, lon1, lat2, lon2) {
+        var R = 6371;
+        var dLat = deg2rad(lat2 - lat1);
+        var dLon = deg2rad(lon2 - lon1);
+        var a =
+            Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+        var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        var d = R * c;
+        return d;
+    }
+
+    function deg2rad(deg) {
+        return deg * (Math.PI / 180);
+    }
+
+    const calcCoordinates = async (firstLocation, secondLocation) => {
+        return await new Promise((resolve, reject) => {
+            geoCoder
+                .geocode(firstLocation)
+                .then((res) => {
+                    const currentLocationOfUser = {
+                        latitude: null,
+                        longitude: null,
+                    };
+                    currentLocationOfUser.latitude = res[0]?.latitude;
+                    currentLocationOfUser.longitude = res[0]?.longitude;
+                    geoCoder
+                        .geocode(secondLocation)
+                        .then((res) => {
+                            const realDistance = getDistanceFromLatLonInKm(
+                                currentLocationOfUser.latitude,
+                                currentLocationOfUser.longitude,
+                                res[0]?.latitude,
+                                res[0]?.longitude,
+                            );
+                            resolve(Math.round(realDistance));
+                        })
+                        .catch((err) => reject(err));
+                })
+                .catch((err) => reject(err));
+        });
+    };
+
+    try {
+        const id = req.query.id;
+        const sex_oriented = req.query.sex_oriented;
+        const age_oriented = req.query.age_oriented;
+        const distance = req.query.distance;
+        const current_address = req.query.current_address;
+        console.log(req.query);
+
+        const userPotentials = await userModel.getUserDiscover(id, sex_oriented, age_oriented);
+        const userPotential = userPotentials[0];
+
+        if (!userPotential) {
+            return res.send({
+                statusCode: 403,
+                responseData: {},
+            });
+        }
+
+        const realDistance = await calcCoordinates(current_address, userPotential.address);
+
+        if (realDistance > distance) {
+            return res.send({
+                statusCode: 200,
+                responseData: [],
+            });
+        }
+
+        const images = await userModel.getImageByUserId(userPotential.id);
+        const interests = await userModel.getMyInterestByUserId(userPotential.id);
+        const basics = await userModel.getBasicsByUserId(userPotential.id);
+        const approachObject = await userModel.getRelationshipOrientedByUserId(userPotential.id);
+
+        let userPotentialLover = {
+            id: userPotential.id,
+            name: userPotential.full_name,
+            dob: userPotential.dob,
+            status: 'Đang hoạt động',
+            about_me: userPotential.about_me,
+            distance: 1,
+            gender: userPotential.sex ? userPotential.sex : null,
+            img: images,
+            hobbies: interests,
+            basics: basics,
+            introduction: userPotential.about_me,
+            socialContact: null,
+            approachObject: approachObject,
+            realDistance: realDistance,
+        };
+
+        if (userPotentialLover) {
+            // console.log('userPotentialLover: ', userPotentialLover);
+            console.log(userPotentialLover);
+            res.send({
+                statusCode: 200,
+                responseData: userPotentialLover,
+            });
+        }
+    } catch (error) {
+        console.log(error);
         res.status(500).json('!!!');
     }
 };
@@ -337,5 +512,8 @@ module.exports = {
     getPotentialLover,
     handleGetSent,
     handleGetXlike,
+    getQuestionsAnswers,
+    saveAnswers,
+    getUserDiscover,
     handleDeleteSent,
 };
