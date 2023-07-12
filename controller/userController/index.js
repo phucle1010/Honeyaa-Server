@@ -194,6 +194,7 @@ const handleGetMatchChat = (req, res) => {
 };
 
 const getPotentialLover = async (req, res) => {
+    // Tính khoảng cách giữa hai profile
     const options = {
         provider: 'openstreetmap',
     };
@@ -262,7 +263,7 @@ const getPotentialLover = async (req, res) => {
         }
 
         const realDistance = await calcCoordinates(current_address, userPotential.address);
-
+        // Kiểm tra khoảng cách được tính có lớn hơn khoảng cách mà user cài đặt hay không
         if (realDistance > distance) {
             return res.send({
                 statusCode: 200,
