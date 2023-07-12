@@ -11,6 +11,28 @@ function hashPass(pass) {
     return hash.update(pass).digest('hex');
 }
 
+const getPersonId = async (token) => {
+    try {
+        const query = `
+            SELECT p.id FROM user u, person p WHERE u.token = ${token} and u.phone = p.phone; 
+        `;
+        return new Promise((resolve, reject) => {
+            db.query(query, (err, result) => {
+                if (err) {
+                    console.log(err);
+                    reject(err);
+                } else {
+                    console.log(result);
+                    resolve(result[0]?.id);
+                }
+            });
+        });
+
+    } catch (e) {
+        throw e;
+    }
+}
+
 const getUserList = (req, res) => {
     const sql = 'SELECT phone FROM user';
     db.query(sql, (err, result) => {
@@ -780,7 +802,7 @@ const potentialLover = async (id, sex_oriented, age_oriented) => {
         WHERE
             p.id != ${id} AND
             p.sex = ${sex_oriented} AND
-            p.active_status = 1 AND
+            -- p.active_status = 1 AND
             NOT EXISTS (
                 SELECT * FROM honeyaa.like l
                 WHERE (l.target_id = p.id AND l.person_id = ${id}) 
@@ -880,6 +902,149 @@ const getRelationshipOrientedByUserId = async (userId) => {
     }
 };
 
+const getQuestions = async (id) => {
+    try {
+        const query = `
+            SELECT * FROM question_content q
+            WHERE q.topic_id = ${id} 
+        `;
+        return new Promise((resolve, reject) => {
+            db.query(query, (err, result) => {
+                if (err) {
+                    console.log(err);
+                    reject(err);
+                } else {
+                    resolve(result);
+                }
+            });
+        });
+
+    } catch (e) {
+        throw e;
+    }
+}
+
+const getAnswers = async (ids) => {
+    try {
+        const query = `
+            SELECT * FROM question_answer a
+            WHERE a.question_id IN (${ids}); 
+        `;
+        return new Promise((resolve, reject) => {
+            db.query(query, (err, result) => {
+                if (err) {
+                    console.log(err);
+                    reject(err);
+                } else {
+                    resolve(result);
+                }
+            });
+        });
+
+    } catch (e) {
+        throw e;
+    }
+}
+
+const saveAnswers = async (answers, personId) => {
+    try {
+        const query = `
+            INSERT INTO person_answer (answer_id, person_id) VALUES ?
+        `;
+
+        const values = answers.filter(answer => answer !== null).map(answer => [answer, personId]);
+
+        return new Promise((resolve, reject) => {
+            db.query(query, [values], (err, result) => {
+                if (err) {
+                    console.log(err);
+                    reject(err);
+                } else {
+                    resolve(result);
+                }
+            });
+        });
+
+    } catch (e) {
+        throw e;
+    }
+}
+
+const getUserDiscover = async (id, sex_oriented, age_oriented) => {
+    const currentYearsOld = (date) => {
+        const currentDate = new Date();
+        const dob = new Date(Date.parse(date));
+        const yearsOld = Number.parseInt(currentDate.getUTCFullYear()) - Number.parseInt(dob.getUTCFullYear());
+        const currentMonth = currentDate.getMonth();
+        const monthInDOB = dob.getMonth();
+        if (currentMonth < monthInDOB) {
+            return yearsOld - 1;
+        }
+        return yearsOld;
+    };
+
+    try {
+        return new Promise((resolve, reject) => {
+            db.query(`
+                SELECT p.id, p.full_name, p.dob, p.phone, p.sex, p.sex_oriented, p.relationship_oriented_id, p.about_me, p.address ,
+                    COUNT(DISTINCT pa.answer_id) AS matching_answers
+                FROM person p
+                JOIN person_answer pa ON p.id = pa.person_id
+                WHERE
+                    p.id != ${id} AND
+                    p.sex = ${sex_oriented} AND
+                    -- p.active_status = 1 AND
+                    NOT EXISTS (
+                        SELECT * FROM honeyaa.like l
+                        WHERE (l.target_id = p.id AND l.person_id = ${id}) 
+                            OR (l.target_id = ${id} AND l.person_id = p.id AND l.is_matched = 1) 
+                            OR (l.target_id = ${id} AND l.person_id = p.id AND l.is_matched = 0  AND l.is_responsed = 1)
+                    )
+                    AND pa.answer_id IN (
+                        SELECT answer_id FROM person_answer WHERE person_id = ${id}
+                    )
+                GROUP BY p.id
+                ORDER BY matching_answers DESC;
+            `, (err, result) => {
+                    if (err) {
+                        console.log(err);
+                        reject(err);
+                    } else {
+                        console.log(result);
+                        const finalResult = result.filter(async (item) => currentYearsOld(item.dob) <= age_oriented);
+                        resolve(finalResult);
+                    }
+                },
+            );
+        });
+    } catch (error) {
+        console.log(error);
+    }
+}
+
+const checkTopicAnswers = async (personId, topicId) => {
+    try {
+        const query = `
+            SELECT * FROM person_answer pa, question_answer qa, question_content q 
+            WHERE pa.person_id = ${personId} and pa.answer_id = qa.id and qa.question_id = q.id and q.topic_id = ${topicId};
+        `;
+
+        return new Promise((resolve, reject) => {
+            db.query(query, (err, result) => {
+                if (err) {
+                    console.log(err);
+                    reject(err);
+                } else {
+                    resolve(result?.[0]);
+                }
+            });
+        });
+
+    } catch (e) {
+        throw e;
+    }
+}
+
 const getMatchChat = (req, res) => {
     const { personId } = req.params;
     const query = `SELECT p.id AS target_id, p.full_name, pi.image AS image, c.id AS chat_id, dt.content
@@ -955,6 +1120,11 @@ module.exports = {
     getRelationshipOrientedByUserId,
     getSent,
     getXlike,
+    getQuestions,
     deleteSent,
-    // deleteXlike
+    getAnswers,
+    getPersonId,
+    saveAnswers,
+    getUserDiscover,
+    checkTopicAnswers,
 };
