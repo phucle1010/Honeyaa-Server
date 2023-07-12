@@ -39,7 +39,8 @@ const postInteract = (person_id, target_id, type, res) => {
     const createNewLikeDataRow = () => {
         db.query(
             'INSERT INTO `like` ' +
-                `(person_id, target_id, type_id, create_at, is_matched, is_responsed) VALUES (${person_id}, ${target_id}, ${type}, '${currentDate}', 0, 0)`,
+                `(person_id, target_id, type_id, create_at, is_matched, is_responsed) 
+                VALUES (${person_id}, ${target_id}, ${type}, '${currentDate}', 0, 0)`,
             (err, result) => {
                 if (err) {
                     res.send({

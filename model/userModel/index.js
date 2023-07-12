@@ -27,11 +27,10 @@ const getPersonId = async (token) => {
                 }
             });
         });
-
     } catch (e) {
         throw e;
     }
-}
+};
 
 const getUserList = (req, res) => {
     const sql = 'SELECT phone FROM user';
@@ -483,7 +482,7 @@ const removeImageFromProfile = (photo_id, person_id, res) => {
         }
     });
 };
-///// Lỗi db ở đây
+
 const getProfile = (req, res) => {
     const { personId } = req.params;
     const query = `select p.id as 'person_id', ro.id as 'relationship_oriented_id', mb.id as 'my_basics_id', full_name, dob, phone, address, about_me, sex, sex_oriented, ro.name as 'relationship_oriented', zodiac, education, social_network, physical, pet, music, mb.language
@@ -918,11 +917,10 @@ const getQuestions = async (id) => {
                 }
             });
         });
-
     } catch (e) {
         throw e;
     }
-}
+};
 
 const getAnswers = async (ids) => {
     try {
@@ -940,11 +938,10 @@ const getAnswers = async (ids) => {
                 }
             });
         });
-
     } catch (e) {
         throw e;
     }
-}
+};
 
 const saveAnswers = async (answers, personId) => {
     try {
@@ -952,7 +949,7 @@ const saveAnswers = async (answers, personId) => {
             INSERT INTO person_answer (answer_id, person_id) VALUES ?
         `;
 
-        const values = answers.filter(answer => answer !== null).map(answer => [answer, personId]);
+        const values = answers.filter((answer) => answer !== null).map((answer) => [answer, personId]);
 
         return new Promise((resolve, reject) => {
             db.query(query, [values], (err, result) => {
@@ -964,11 +961,10 @@ const saveAnswers = async (answers, personId) => {
                 }
             });
         });
-
     } catch (e) {
         throw e;
     }
-}
+};
 
 const getUserDiscover = async (id, sex_oriented, age_oriented) => {
     const currentYearsOld = (date) => {
@@ -985,7 +981,8 @@ const getUserDiscover = async (id, sex_oriented, age_oriented) => {
 
     try {
         return new Promise((resolve, reject) => {
-            db.query(`
+            db.query(
+                `
                 SELECT p.id, p.full_name, p.dob, p.phone, p.sex, p.sex_oriented, p.relationship_oriented_id, p.about_me, p.address ,
                     COUNT(DISTINCT pa.answer_id) AS matching_answers
                 FROM person p
@@ -1005,7 +1002,8 @@ const getUserDiscover = async (id, sex_oriented, age_oriented) => {
                     )
                 GROUP BY p.id
                 ORDER BY matching_answers DESC;
-            `, (err, result) => {
+            `,
+                (err, result) => {
                     if (err) {
                         console.log(err);
                         reject(err);
@@ -1020,7 +1018,7 @@ const getUserDiscover = async (id, sex_oriented, age_oriented) => {
     } catch (error) {
         console.log(error);
     }
-}
+};
 
 const checkTopicAnswers = async (personId, topicId) => {
     try {
@@ -1039,11 +1037,10 @@ const checkTopicAnswers = async (personId, topicId) => {
                 }
             });
         });
-
     } catch (e) {
         throw e;
     }
-}
+};
 
 const getMatchChat = (req, res) => {
     const { personId } = req.params;

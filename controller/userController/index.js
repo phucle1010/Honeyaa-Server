@@ -202,7 +202,7 @@ const getQuestionsAnswers = async (req, res) => {
 
         if (!id) return res.status(403).json('id was loss');
         console.log(personId, id);
-        
+
         const isAnswered = await userModel.checkTopicAnswers(personId, id);
         console.log(isAnswered);
         if (isAnswered) return res.status(200).json([]);
@@ -212,18 +212,18 @@ const getQuestionsAnswers = async (req, res) => {
 
         const answers = await userModel.getAnswers(questionId);
 
-        const result = questions.map(q => {
+        const result = questions.map((q) => {
             const question = {
                 id: q.id,
                 content: q.content,
                 topic_id: q.topic_id,
-                answers: []
+                answers: [],
             };
-            answers.forEach(a => {
+            answers.forEach((a) => {
                 if (a.question_id === q.id) {
                     question.answers.push({
                         id: a.id,
-                        content: a.content
+                        content: a.content,
                     });
                 }
             });
@@ -235,7 +235,7 @@ const getQuestionsAnswers = async (req, res) => {
         console.log(e);
         res.status(500).json('!!!');
     }
-}
+};
 
 const saveAnswers = async (req, res) => {
     try {
@@ -251,9 +251,10 @@ const saveAnswers = async (req, res) => {
         console.log(e);
         res.status(500).json('!!!');
     }
-}
+};
 
 const getPotentialLover = async (req, res) => {
+    // Tính khoảng cách giữa hai profile
     const options = {
         provider: 'openstreetmap',
     };
@@ -322,13 +323,13 @@ const getPotentialLover = async (req, res) => {
         }
 
         const realDistance = await calcCoordinates(current_address, userPotential.address);
-
-        // if (realDistance > distance) {
-        //     return res.send({
-        //         statusCode: 200,
-        //         responseData: [],
-        //     });
-        // }
+        // Kiểm tra khoảng cách được tính có lớn hơn khoảng cách mà user cài đặt hay không
+        if (realDistance > distance) {
+            return res.send({
+                statusCode: 200,
+                responseData: [],
+            });
+        }
 
         const images = await userModel.getImageByUserId(userPotential.id);
         const interests = await userModel.getMyInterestByUserId(userPotential.id);
@@ -363,7 +364,7 @@ const getPotentialLover = async (req, res) => {
         console.log(error);
         res.status(500).json('!!!');
     }
-}
+};
 
 const getUserDiscover = async (req, res) => {
     const options = {
@@ -424,7 +425,6 @@ const getUserDiscover = async (req, res) => {
         const current_address = req.query.current_address;
         console.log(req.query);
 
-
         const userPotentials = await userModel.getUserDiscover(id, sex_oriented, age_oriented);
         const userPotential = userPotentials[0];
 
@@ -437,12 +437,12 @@ const getUserDiscover = async (req, res) => {
 
         const realDistance = await calcCoordinates(current_address, userPotential.address);
 
-        // if (realDistance > distance) {
-        //     return res.send({
-        //         statusCode: 200,
-        //         responseData: [],
-        //     });
-        // }
+        if (realDistance > distance) {
+            return res.send({
+                statusCode: 200,
+                responseData: [],
+            });
+        }
 
         const images = await userModel.getImageByUserId(userPotential.id);
         const interests = await userModel.getMyInterestByUserId(userPotential.id);
