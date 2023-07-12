@@ -354,7 +354,6 @@ const getPotentialLover = async (req, res) => {
         };
 
         if (userPotentialLover) {
-            // console.log('userPotentialLover: ', userPotentialLover);
             res.send({
                 statusCode: 200,
                 responseData: userPotentialLover,
