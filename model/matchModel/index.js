@@ -85,7 +85,7 @@ const postInteract = (person_id, target_id, type, res) => {
         if (type === LIKE || type === SUPER_LIKE) {
             db.query(
                 'UPDATE `like` ' +
-                    `SET is_matched = 1, is_responsed = 1 WHERE target_id=${person_id} AND person_id=${target_id}`,
+                    `SET is_matched = 1, is_responsed = 1, create_at='${currentDate}'  WHERE target_id=${person_id} AND person_id=${target_id}`,
                 (err, result) => {
                     if (err) {
                         res.send({

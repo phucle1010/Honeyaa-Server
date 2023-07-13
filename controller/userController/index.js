@@ -189,8 +189,14 @@ const handleGetChat = (req, res) => {
 const handlePostMessage = (req, res) => {
     userModel.postMessage(req, res);
 };
+
 const handleGetMatchChat = (req, res) => {
     userModel.getMatchChat(req, res);
+};
+
+const handleGetNotification = (req, res) => {
+    const person_id = req.query.person_id;
+    userModel.getNotification(person_id, res);
 };
 
 const getQuestionsAnswers = async (req, res) => {
@@ -508,6 +514,7 @@ module.exports = {
     handleGetChat,
     handlePostMessage,
     handleGetMatchChat,
+    handleGetNotification,
     getPotentialLover,
     handleGetSent,
     handleGetXlike,

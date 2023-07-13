@@ -1081,6 +1081,30 @@ const getMatchChat = (req, res) => {
     });
 };
 
+const getNotification = (person_id, res) => {
+    db.query(
+        `
+            SELECT p.full_name, pi.image, l.create_at 
+            FROM honeyaa.like l, person p, profile_img pi 
+            WHERE l.person_id=${person_id} AND l.is_matched=1 AND l.is_responsed=1 AND l.target_id=p.id AND p.id=pi.person_id
+            LIMIT 1
+        `,
+        (err, result) => {
+            if (err) {
+                res.send({
+                    statusCode: 400,
+                    responseData: err.toString(),
+                });
+            } else {
+                res.send({
+                    statusCode: 200,
+                    responseData: result,
+                });
+            }
+        },
+    );
+};
+
 module.exports = {
     getUserList,
     getUser,
@@ -1124,4 +1148,5 @@ module.exports = {
     saveAnswers,
     getUserDiscover,
     checkTopicAnswers,
+    getNotification,
 };
