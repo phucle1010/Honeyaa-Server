@@ -114,8 +114,9 @@ const getUser = (token, device_id, res) => {
 };
 
 const postUser = (req, res) => {
-    const { phone, pass, name, birthday, photo, photo1, gender, obgender, interests } = req.body;
+    const { phone, pass, name, birthday, photo, photo1, gender, obgender, interests, address } = req.body;
     const password = hashPass(pass.toString());
+    console.log(phone, pass, name, birthday, gender, obgender, interests, address);
 
     const insertMyBasics = (person_id) => {
         db.query(`INSERT INTO my_basics (person_id) VALUES (${person_id})`, (err, result) => {
@@ -127,8 +128,8 @@ const postUser = (req, res) => {
         });
     };
 
-    const insertInterests = (person_id) => {
-        interests.forEach((interestId) => {
+    const insertInterests = async (person_id) => {
+        await interests.forEach((interestId) => {
             const sql = `INSERT INTO my_interest (person_id, interest_id) VALUES (${person_id}, ${interestId})`;
             db.query(sql, (err, result) => {
                 if (err) {
@@ -139,7 +140,7 @@ const postUser = (req, res) => {
                 }
             });
         });
-        insertMyBasics();
+        insertMyBasics(person_id);
     };
 
     const insertImageData = (person_id) => {
@@ -161,7 +162,7 @@ const postUser = (req, res) => {
         const date = new Date(Date.parse(birthday));
         const convertedDate = `${date.getUTCFullYear()}/${date.getUTCMonth() + 1}/${date.getDate()}`;
         db.query(
-            `INSERT INTO person (full_name, dob, phone, sex, sex_oriented, relationship_oriented_id, about_me, address, age_oriented, distance, active_status) VALUES ('${name}', '${convertedDate}', '${phone}', ${gender}, ${obgender}, 1, 'Trống', 'Trống', 0, 0, 1)`,
+            `INSERT INTO person (full_name, dob, phone, sex, sex_oriented, relationship_oriented_id, about_me, address, age_oriented, distance, active_status) VALUES ('${name}', '${convertedDate}', '${phone}', ${gender}, ${obgender}, 1, 'Trống', '${address}', 0, 0, 1)`,
             (err, result) => {
                 if (err) {
                     res.status(500).json(err.toString());
@@ -179,6 +180,7 @@ const postUser = (req, res) => {
         const sql = 'INSERT INTO user (phone, pass) VALUES';
         db.query(`${sql} ('${phone}', '${password}')`, (err, result) => {
             if (err) {
+                console.log('lỗi ở đây');
                 res.status(500).json(err.toString());
             } else {
                 if (result.affectedRows > 0) {
@@ -188,7 +190,21 @@ const postUser = (req, res) => {
         });
     };
 
-    insertUserData();
+    const checkPhone = (phonenumber, res) => {
+        db.query(`SELECT * FROM user WHERE phone = '${phonenumber}'`, (error, results) => {
+            if (error) {
+                res.status(500).json({ error });
+            } else {
+                if (results.length !== 0) {
+                    res.status(404).json({ error: 'Phone number has been registered' });
+                } else {
+                    insertUserData();
+                }
+            }
+        });
+    };
+
+    checkPhone();
 };
 
 const signoutUser = (phone, device_id, res) => {
@@ -219,33 +235,6 @@ const signoutUser = (phone, device_id, res) => {
         } else {
             if (result.affectedRows > 0) {
                 updateUserInDeviceData();
-            }
-        }
-    });
-};
-
-const checkPhone = (phonenumber, res) => {
-    db.query(`SELECT * FROM user WHERE phone = '${phonenumber}'`, (error, results) => {
-        if (error) {
-            res.status(500).json({ error });
-        } else {
-            if (results.length !== 0) {
-                res.status(404).json({ error: 'Phone number has been registered' });
-            } else {
-                console.log('phone number: ', phonenumber);
-                client.verify.v2
-                    .services(process.env.TWILIO_SERVICE_SID)
-                    .verifications.create({
-                        to: `+84${phonenumber}`,
-                        channel: 'sms',
-                    })
-                    .then((data) => {
-                        res.status(200).send({
-                            message: 'Verification is sent!!',
-                            phonenumber,
-                            data,
-                        });
-                    });
             }
         }
     });
@@ -1110,7 +1099,6 @@ module.exports = {
     getUser,
     postUser,
     signoutUser,
-    checkPhone,
     verifyAuthen,
     verifyPhone,
     verifyOTP,
