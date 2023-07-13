@@ -648,9 +648,10 @@ const putProfile = (req, res) => {
 };
 
 const getTopLike = (req, res) => {
-    const query = `SELECT p.id AS target_id,p.full_name,image,
-    COUNT(l.target_id) AS numOfLike
-    FROM Honeyaa.like l JOIN person p ON l.target_id = p.id
+    const query =
+        'SELECT p.id AS target_id,p.full_name,image, COUNT(l.target_id) AS numOfLike FROM `like` l' +
+        `
+    JOIN person p ON l.target_id = p.id
     JOIN (SELECT MIN(pi.id) AS min_image_id,pi.person_id
     FROM profile_img pi
     GROUP BY pi.person_id
@@ -669,8 +670,9 @@ const getTopLike = (req, res) => {
 
 const getSent = (req, res) => {
     const { personId } = req.params;
-    const query = `SELECT l.id as likeId, p.id AS target_id, p.full_name, image, create_at, l.is_responsed
-    FROM Honeyaa.like l JOIN person p ON l.target_id = p.id
+    const query =
+        'SELECT l.id as likeId, p.id AS target_id, p.full_name, image, create_at, l.is_responsed FROM `like` l' +
+        `JOIN person p ON l.target_id = p.id
     JOIN (SELECT MIN(pi.id) AS min_image_id, pi.person_id
     FROM profile_img pi
     GROUP BY pi.person_id
@@ -688,7 +690,7 @@ const getSent = (req, res) => {
 };
 const deleteSent = (req, res) => {
     const { likeId } = req.params;
-    const query = `DELETE FROM Honeyaa.like WHERE id =?;`;
+    const query = 'DELETE FROM `like`' + `WHERE id =?;`;
     db.query(query, [likeId], (err, result) => {
         if (err) {
             console.log(err);
@@ -698,8 +700,9 @@ const deleteSent = (req, res) => {
 };
 const getXlike = (req, res) => {
     const { personId } = req.params;
-    const query = `SELECT l.id as likeId,p.id AS person_id,p.full_name,image, create_at
-    FROM Honeyaa.like l JOIN person p ON l.person_id = p.id
+    const query =
+        'SELECT l.id as likeId,p.id AS person_id,p.full_name,image, create_at FROM `like` l' +
+        `JOIN person p ON l.person_id = p.id
     JOIN (SELECT MIN(pi.id) AS min_image_id,pi.person_id
     FROM profile_img pi
     GROUP BY pi.person_id
@@ -791,8 +794,9 @@ const potentialLover = async (id, sex_oriented, age_oriented) => {
             p.id != ${id} AND
             p.sex = ${sex_oriented} AND
             -- p.active_status = 1 AND
-            NOT EXISTS (
-                SELECT * FROM honeyaa.like l
+            NOT EXISTS (` +
+                    'SELECT * FROM `like` l' +
+                    `
                 WHERE (l.target_id = p.id AND l.person_id = ${id}) 
                 OR (l.target_id = ${id} AND l.person_id = p.id AND l.is_matched = 1) 
                 OR (l.target_id = ${id} AND l.person_id = p.id AND l.is_matched = 0  AND l.is_responsed = 1)
@@ -981,7 +985,9 @@ const getUserDiscover = async (id, sex_oriented, age_oriented) => {
                     p.sex = ${sex_oriented} AND
                     -- p.active_status = 1 AND
                     NOT EXISTS (
-                        SELECT * FROM honeyaa.like l
+                        ` +
+                    'SELECT * FROM `like` l' +
+                    `
                         WHERE (l.target_id = p.id AND l.person_id = ${id}) 
                             OR (l.target_id = ${id} AND l.person_id = p.id AND l.is_matched = 1) 
                             OR (l.target_id = ${id} AND l.person_id = p.id AND l.is_matched = 0  AND l.is_responsed = 1)
@@ -1074,7 +1080,9 @@ const getNotification = (person_id, res) => {
     db.query(
         `
             SELECT p.full_name, pi.image, l.create_at 
-            FROM honeyaa.like l, person p, profile_img pi 
+            FROM ` +
+            '`like` l' +
+            `, person p, profile_img pi 
             WHERE l.person_id=${person_id} AND l.is_matched=1 AND l.is_responsed=1 AND l.target_id=p.id AND p.id=pi.person_id
             LIMIT 1
         `,
