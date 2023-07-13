@@ -21,20 +21,6 @@ io.on('connection', (socket) => {
     });
 });
 
-// db.getConnection(function (err, con) {
-//     if (err) {
-//         console.log('failed to connect to database');
-//     } else {
-//         con.query('SELECT * FROM detail_chat', (err, result) => {
-//             if (err) {
-//                 console.log(err);
-//             } else {
-//                 console.log('result: ', result);
-//             }
-//         });
-//         console.log('Connected!');
-//     }
-// });
 httpServer.listen(PORT, () => {
     console.log(`Server is running on ${PORT}`);
 });
