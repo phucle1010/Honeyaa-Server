@@ -649,17 +649,17 @@ const putProfile = (req, res) => {
 
 const getTopLike = (req, res) => {
     const query =
-        'SELECT p.id AS target_id,p.full_name,image, COUNT(l.target_id) AS numOfLike FROM `like` l' +
+        'SELECT p.id AS target_id,p.full_name,image, COUNT(l.target_id) AS numOfLike FROM `like` l ' +
         `
-    JOIN person p ON l.target_id = p.id
-    JOIN (SELECT MIN(pi.id) AS min_image_id,pi.person_id
-    FROM profile_img pi
-    GROUP BY pi.person_id
-    ) min_pi ON min_pi.person_id = p.id
-    JOIN profile_img pi ON pi.id = min_pi.min_image_id
-    GROUP BY target_id,full_name,image
-    ORDER BY numOfLike DESC
-    LIMIT 10;`;
+        JOIN person p ON l.target_id = p.id
+        JOIN (SELECT MIN(pi.id) AS min_image_id,pi.person_id
+        FROM profile_img pi
+        GROUP BY pi.person_id
+        ) min_pi ON min_pi.person_id = p.id
+        JOIN profile_img pi ON pi.id = min_pi.min_image_id
+        GROUP BY p.id,full_name,image
+        ORDER BY numOfLike DESC
+        LIMIT 10;`;
     db.query(query, (err, result) => {
         if (err) {
             console.log(err);
@@ -671,7 +671,7 @@ const getTopLike = (req, res) => {
 const getSent = (req, res) => {
     const { personId } = req.params;
     const query =
-        'SELECT l.id as likeId, p.id AS target_id, p.full_name, image, create_at, l.is_responsed FROM `like` l' +
+        'SELECT l.id as likeId, p.id AS target_id, p.full_name, image, create_at, l.is_responsed FROM `like` l ' +
         `JOIN person p ON l.target_id = p.id
     JOIN (SELECT MIN(pi.id) AS min_image_id, pi.person_id
     FROM profile_img pi
@@ -679,7 +679,7 @@ const getSent = (req, res) => {
     ) min_pi ON min_pi.person_id = p.id
     JOIN profile_img pi ON pi.id = min_pi.min_image_id
     where l.person_id=?
-    GROUP BY target_id,full_name,image, create_at, likeId
+    GROUP BY p.id,full_name,image, create_at, l.id
     ORDER BY create_at desc;`;
     db.query(query, [personId], (err, result) => {
         if (err) {
@@ -701,7 +701,7 @@ const deleteSent = (req, res) => {
 const getXlike = (req, res) => {
     const { personId } = req.params;
     const query =
-        'SELECT l.id as likeId,p.id AS person_id,p.full_name,image, create_at FROM `like` l' +
+        'SELECT l.id as likeId,p.id AS person_id, p.full_name, image, create_at FROM `like` l ' +
         `JOIN person p ON l.person_id = p.id
     JOIN (SELECT MIN(pi.id) AS min_image_id,pi.person_id
     FROM profile_img pi
@@ -709,9 +709,9 @@ const getXlike = (req, res) => {
     ) min_pi ON min_pi.person_id = p.id
     JOIN profile_img pi ON pi.id = min_pi.min_image_id
     where l.target_id=? and l.is_matched = 0 and l.is_responsed = 0 
-    GROUP BY person_id,full_name,image, create_at,likeId
+    GROUP BY p.id,full_name,image, create_at,l.id
     ORDER BY create_at desc;`;
-    db.query(query, [personId, personId], (err, result) => {
+    db.query(query, [personId], (err, result) => {
         if (err) {
             console.log(err);
         }

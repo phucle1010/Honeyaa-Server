@@ -16,7 +16,7 @@ router.get('/data', userController.handleGetUserData);
 
 // follow like
 router.get('/toplike', userController.handleGetTopLike);
-router.get('/sent/:personId', userController.handleGetSent);
+router.get('/sent/all/:personId', userController.handleGetSent);
 router.get('/xlike/:personId', userController.handleGetXlike);
 router.delete('/sent/delete/:likeId', userController.handleDeleteSent);
 
@@ -29,7 +29,7 @@ router.get('/myInterest/:personId', userController.handleGetMyInterest);
 router.get('/relationship_oriented', userController.handleGetRelationshipOrientedList);
 router.put('/myBasic/:myBasicId', userController.handleUpdateMyBasic);
 router.put('/setprofile/:personId', userController.handleSetProfile);
-router.put('/profile/password', userController.handlePutPassword);
+router.put('/profile/edit/password', userController.handlePutPassword);
 
 // upload images
 router.get('/profile/img/all', userController.handleGetImageOfUser);

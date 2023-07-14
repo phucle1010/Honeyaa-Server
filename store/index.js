@@ -13,6 +13,7 @@ const db = mysql.createPool({
     // password: 'FbJ5c1mu1s',
     // database: 'sql10632404',
     // port: '3306',
+
     host: 'gateway01.us-east-1.prod.aws.tidbcloud.com',
     port: 4000,
     user: '8fQiJvi8jQBZMD3.root',
