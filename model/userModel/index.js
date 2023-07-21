@@ -50,67 +50,71 @@ const getUserList = (req, res) => {
 };
 
 const getUser = (token, device_id, res) => {
-    const getUserData = () => {
-        db.query(`SELECT * FROM person p, user u WHERE p.phone = u.phone AND u.token=${token}`, (err, result) => {
-            if (err) {
-                res.send({
-                    statusCode: 400,
-                    responseData: err.toString(),
-                });
-            } else {
-                const person_info = result;
-                new Promise((resolve, reject) => {
-                    db.query(`SELECT * FROM profile_img WHERE person_id=${person_info[0]?.id}`, (err, result) => {
-                        if (err) {
-                            res.send({
-                                statusCode: 400,
-                                responseData: err.toString(),
-                            });
-                        } else {
-                            resolve(result);
-                        }
-                        if (err) {
-                            console.log(err);
-                            reject(err);
-                        } else {
-                            resolve(result);
-                        }
-                    });
-                }).then((image) => {
-                    person_info[0].img = image;
-                    res.send({
-                        statusCode: 200,
-                        responseData: person_info,
-                    });
-                });
-            }
-        });
-    };
-
-    const checkUserInDevice = () => {
-        db.query(
-            `SELECT * FROM user u, user_in_device ud WHERE u.phone = ud.phone AND device_id = '${device_id}' AND is_using = 1`,
-            (err, result) => {
+    try {
+        const getUserData = () => {
+            db.query(`SELECT * FROM person p, user u WHERE p.phone = u.phone AND u.token=${token}`, (err, result) => {
                 if (err) {
                     res.send({
                         statusCode: 400,
                         responseData: err.toString(),
                     });
                 } else {
-                    if (result.length > 0) {
-                        getUserData();
-                    } else {
-                        res.send({
-                            statusCode: 404,
-                            responseData: 'User Not Found In Device',
+                    const person_info = result;
+                    new Promise((resolve, reject) => {
+                        db.query(`SELECT * FROM profile_img WHERE person_id=${person_info[0]?.id}`, (err, result) => {
+                            if (err) {
+                                res.send({
+                                    statusCode: 400,
+                                    responseData: err.toString(),
+                                });
+                            } else {
+                                resolve(result);
+                            }
+                            if (err) {
+                                console.log(err);
+                                reject(err);
+                            } else {
+                                resolve(result);
+                            }
                         });
-                    }
+                    }).then((image) => {
+                        person_info[0].img = image;
+                        res.send({
+                            statusCode: 200,
+                            responseData: person_info,
+                        });
+                    });
                 }
-            },
-        );
-    };
+            });
+        };
 
-    checkUserInDevice();
+        const checkUserInDevice = () => {
+            db.query(
+                `SELECT * FROM user u, user_in_device ud WHERE u.phone = ud.phone AND device_id = '${device_id}' AND is_using = 1`,
+                (err, result) => {
+                    if (err) {
+                        res.send({
+                            statusCode: 400,
+                            responseData: err.toString(),
+                        });
+                    } else {
+                        if (result.length > 0) {
+                            getUserData();
+                        } else {
+                            res.send({
+                                statusCode: 404,
+                                responseData: 'User Not Found In Device',
+                            });
+                        }
+                    }
+                },
+            );
+        };
+
+        checkUserInDevice();
+    } catch (err) {
+        console.log(err);
+    }
 };
 
 const postUser = (req, res) => {

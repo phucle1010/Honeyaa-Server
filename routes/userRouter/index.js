@@ -39,7 +39,7 @@ router.post('/profile/img/post', userController.handlePostImageIntoProfile);
 router.delete('/profile/img/delete', userController.handleRemoveImageFromProfile);
 
 // get potential user
-router.get('/potential_love', userController.getPotentialLover);
+router.get('/potential_love/main', userController.getPotentialLover);
 
 // chat
 router.get('/chat/:personId/:targetId', userController.handleGetChat);
